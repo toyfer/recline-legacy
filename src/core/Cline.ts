@@ -802,7 +802,8 @@ export class Cline {
 			throw new Error("MCP hub not available")
 		}
 
-		let systemPrompt = await SYSTEM_PROMPT(cwd, this.api.getModel().info.supportsComputerUse ?? false, mcpHub)
+        const model = await this.api.getModel();
+		let systemPrompt = await SYSTEM_PROMPT(cwd, model.info.supportsComputerUse ?? false, mcpHub)
 		let settingsCustomInstructions = this.customInstructions?.trim()
 		const clineRulesFilePath = path.resolve(cwd, GlobalFileNames.clineRules)
 		let clineRulesFileInstructions: string | undefined
@@ -830,9 +831,9 @@ export class Cline {
 					previousRequest.text,
 				)
 				const totalTokens = (tokensIn || 0) + (tokensOut || 0) + (cacheWrites || 0) + (cacheReads || 0)
-				let contextWindow = this.api.getModel().info.contextWindow || 128_000
+				let contextWindow = model.info.contextWindow || 128_000
 				// FIXME: hack to get anyone using openai compatible with deepseek to have the proper context window instead of the default 128k. We need a way for the user to specify the context window for models they input through openai compatible
-				if (this.api instanceof OpenAiHandler && this.api.getModel().id.toLowerCase().includes("deepseek")) {
+				if (this.api instanceof OpenAiHandler && model.id.toLowerCase().includes("deepseek")) {
 					contextWindow = 64_000
 				}
 				let maxAllowedSize: number
@@ -897,6 +898,8 @@ export class Cline {
 		}
 		this.presentAssistantMessageLocked = true
 		this.presentAssistantMessageHasPendingUpdates = false
+
+        const model = await this.api.getModel();
 
 		while (
 			this.currentStreamingContentIndex < this.assistantMessageContent.length &&
@@ -1143,7 +1146,7 @@ export class Cline {
 								// Construct newContent from diff
 								let newContent: string
 								if (diff) {
-									if (!this.api.getModel().id.includes("claude")) {
+									if (!model.id.includes("claude")) {
 										// deepseek models tend to use unescaped html entities in diffs
 										diff = fixModelHtmlEscaping(diff)
 										diff = removeInvalidChars(diff)
@@ -1181,7 +1184,7 @@ export class Cline {
 										newContent = newContent.split("\n").slice(0, -1).join("\n").trim()
 									}
 
-									if (!this.api.getModel().id.includes("claude")) {
+									if (!model.id.includes("claude")) {
 										// it seems not just llama models are doing this, but also gemini and potentially others
 										newContent = fixModelHtmlEscaping(newContent)
 										newContent = removeInvalidChars(newContent)
@@ -2249,6 +2252,8 @@ export class Cline {
 			throw new Error("Cline instance aborted")
 		}
 
+        const model = await this.api.getModel();
+        
 		if (this.consecutiveMistakeCount >= 3) {
 			if (this.autoApprovalSettings.enabled && this.autoApprovalSettings.enableNotifications) {
 				showSystemNotification({
@@ -2258,7 +2263,7 @@ export class Cline {
 			}
 			const { response, text, images } = await this.ask(
 				"mistake_limit_reached",
-				this.api.getModel().id.includes("claude")
+				model.id.includes("claude")
 					? `This may indicate a failure in his thought process or inability to use a tool properly, which can be mitigated with some user guidance (e.g. "Try breaking down the task into smaller steps").`
 					: "Cline uses complex prompts and iterative task execution that may be challenging for less capable models. For best results, it's recommended to use Claude 3.5 Sonnet for its advanced agentic coding capabilities.",
 			)
@@ -2342,7 +2347,7 @@ export class Cline {
 					cost:
 						totalCost ??
 						calculateApiCost(
-							this.api.getModel().info,
+							model.info,
 							inputTokens,
 							outputTokens,
 							cacheWriteTokens,
