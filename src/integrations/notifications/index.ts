@@ -1,97 +1,109 @@
-import { execa } from "execa"
-import { platform } from "os"
+import * as vscode from "vscode";
+
+interface NotificationAction {
+	title: string;
+	callback: () => void | Promise<void>;
+}
 
 interface NotificationOptions {
-	title?: string
-	subtitle?: string
-	message: string
+	title?: string;
+	subtitle?: string;
+	message: string;
+	type?: "info" | "warning" | "error"; // Type of notification to show
+	modal?: boolean; // Whether to show as modal dialog (for immediate user attention)
+	actions?: NotificationAction[]; // Optional actions for the notification
+	doNotShowAgainKey?: string; // Unique key to store "Don't Show Again" preference
 }
 
-async function showMacOSNotification(options: NotificationOptions): Promise<void> {
-	const { title, subtitle = "", message } = options
-
-	const script = `display notification "${message}" with title "${title}" subtitle "${subtitle}" sound name "Tink"`
-
+/**
+ * Shows a system notification using VSCode's native API
+ * Following VSCode guidelines:
+ * - Use modal dialogs only for immediate user attention
+ * - Support "Don't Show Again" for repeated notifications
+ * - Allow actions for user interaction
+ * - Show either error or info notifications based on context
+ *
+ * @param context VSCode extension context for storing preferences
+ * @param options Configuration for the notification
+ */
+export async function showSystemNotification(
+	context: vscode.ExtensionContext,
+	options: NotificationOptions
+): Promise<void> {
 	try {
-		await execa("osascript", ["-e", script])
-	} catch (error) {
-		throw new Error(`Failed to show macOS notification: ${error}`)
-	}
-}
-
-async function showWindowsNotification(options: NotificationOptions): Promise<void> {
-	const { subtitle, message } = options
-
-	const script = `
-    [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
-    [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null
-
-    $template = @"
-    <toast>
-        <visual>
-            <binding template="ToastText02">
-                <text id="1">${subtitle}</text>
-                <text id="2">${message}</text>
-            </binding>
-        </visual>
-    </toast>
-"@
-
-    $xml = New-Object Windows.Data.Xml.Dom.XmlDocument
-    $xml.LoadXml($template)
-    $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
-    [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Cline").Show($toast)
-    `
-
-	try {
-		await execa("powershell", ["-Command", script])
-	} catch (error) {
-		throw new Error(`Failed to show Windows notification: ${error}`)
-	}
-}
-
-async function showLinuxNotification(options: NotificationOptions): Promise<void> {
-	const { title = "", subtitle = "", message } = options
-
-	// Combine subtitle and message if subtitle exists
-	const fullMessage = subtitle ? `${subtitle}\n${message}` : message
-
-	try {
-		await execa("notify-send", [title, fullMessage])
-	} catch (error) {
-		throw new Error(`Failed to show Linux notification: ${error}`)
-	}
-}
-
-export async function showSystemNotification(options: NotificationOptions): Promise<void> {
-	try {
-		const { title = "Cline", message } = options
+		const {
+			title = "Cline",
+			subtitle,
+			message,
+			type = "info",
+			modal = false,
+			actions = [],
+			doNotShowAgainKey
+		} = options;
 
 		if (!message) {
-			throw new Error("Message is required")
+			throw new Error("Message is required");
 		}
 
-		const escapedOptions = {
-			...options,
-			title: title.replace(/"/g, '\\"'),
-			message: message.replace(/"/g, '\\"'),
-			subtitle: options.subtitle?.replace(/"/g, '\\"') || "",
+		// Check if notification should be suppressed
+		if (doNotShowAgainKey && context.globalState.get(`notification.${doNotShowAgainKey}.suppress`)) {
+			return;
 		}
 
-		switch (platform()) {
-			case "darwin":
-				await showMacOSNotification(escapedOptions)
-				break
-			case "win32":
-				await showWindowsNotification(escapedOptions)
-				break
-			case "linux":
-				await showLinuxNotification(escapedOptions)
-				break
+		const fullMessage = subtitle ? `${subtitle}\n${message}` : message;
+
+		// Prepare notification items including actions and "Don't Show Again"
+		const items: vscode.MessageItem[] = [
+			...actions.map(action => ({
+				title: action.title,
+				isCloseAffordance: false
+			}))
+		];
+
+		// Only add "Don't Show Again" for non-modal notifications with a storage key
+		if (!modal && doNotShowAgainKey) {
+			items.push({
+				title: "Don't Show Again",
+				isCloseAffordance: true
+			});
+		}
+
+		// Show notification using VSCode's native system notification API
+		let notificationFn: typeof vscode.window.showInformationMessage;
+		switch (type) {
+			case 'error':
+				notificationFn = vscode.window.showErrorMessage;
+				break;
+			case 'warning':
+				notificationFn = vscode.window.showWarningMessage;
+				break;
+			case 'info':
 			default:
-				throw new Error("Unsupported platform")
+				notificationFn = vscode.window.showInformationMessage;
+		}
+
+		const selection = await notificationFn(
+			fullMessage,
+			{
+				modal,
+				detail: title
+			},
+			...items
+		);
+
+		// Handle selection
+		if (selection) {
+			if (selection.title === "Don't Show Again" && doNotShowAgainKey) {
+				await context.globalState.update(`notification.${doNotShowAgainKey}.suppress`, true);
+			} else {
+				// Find and execute the matching action callback
+				const action = actions.find(a => a.title === selection.title);
+				if (action) {
+					await action.callback();
+				}
+			}
 		}
 	} catch (error) {
-		console.error("Could not show system notification", error)
+		console.error("Could not show system notification", error);
 	}
 }
