@@ -11,83 +11,6 @@ import {
     MessageParamWithTokenCount
 } from "../../shared/api";
 
-// Cline does not update VSCode type definitions or engine requirements to maintain compatibility.
-// This declaration (as seen in src/integrations/TerminalManager.ts) provides types for the Language Model API in newer versions of VSCode.
-// Extracted from https://github.com/microsoft/vscode/blob/131ee0ef660d600cd0a7e6058375b281553abe20/src/vscode-dts/vscode.d.ts
-declare module "vscode" {
-    enum LanguageModelChatMessageRole {
-        User = 1,
-        Assistant = 2
-    }
-    enum LanguageModelChatToolMode {
-        Auto = 1,
-        Required = 2
-    }
-    interface LanguageModelChatSelector {
-        vendor?: string;
-        family?: string;
-        version?: string;
-        id?: string;
-    }
-    interface LanguageModelChatTool {
-        name: string;
-        description: string;
-        inputSchema?: object;
-    }
-    interface LanguageModelChatRequestOptions {
-        justification?: string;
-        modelOptions?: { [name: string]: any; };
-        tools?: LanguageModelChatTool[];
-        toolMode?: LanguageModelChatToolMode;
-    }
-    class LanguageModelTextPart {
-        value: string;
-        constructor(value: string);
-    }
-    class LanguageModelToolCallPart {
-        callId: string;
-        name: string;
-        input: object;
-        constructor(callId: string, name: string, input: object);
-    }
-    interface LanguageModelChatResponse {
-        stream: AsyncIterable<LanguageModelTextPart | LanguageModelToolCallPart | unknown>;
-        text: AsyncIterable<string>;
-    }
-    interface LanguageModelChat {
-        readonly name: string;
-        readonly id: string;
-        readonly vendor: string;
-        readonly family: string;
-        readonly version: string;
-        readonly maxInputTokens: number;
-
-        sendRequest(messages: LanguageModelChatMessage[], options?: LanguageModelChatRequestOptions, token?: CancellationToken): Thenable<LanguageModelChatResponse>;
-        countTokens(text: string | LanguageModelChatMessage, token?: CancellationToken): Thenable<number>;
-    }
-    class LanguageModelPromptTsxPart {
-        value: unknown;
-        constructor(value: unknown);
-    }
-    class LanguageModelToolResultPart {
-        callId: string;
-        content: Array<LanguageModelTextPart | LanguageModelPromptTsxPart | unknown>;
-        constructor(callId: string, content: Array<LanguageModelTextPart | LanguageModelPromptTsxPart | unknown>);
-    }
-    class LanguageModelChatMessage {
-        static User(content: string | Array<LanguageModelTextPart | LanguageModelToolResultPart>, name?: string): LanguageModelChatMessage;
-        static Assistant(content: string | Array<LanguageModelTextPart | LanguageModelToolCallPart>, name?: string): LanguageModelChatMessage;
-
-        role: LanguageModelChatMessageRole;
-        content: Array<LanguageModelTextPart | LanguageModelToolResultPart | LanguageModelToolCallPart>;
-        name: string | undefined;
-
-        constructor(role: LanguageModelChatMessageRole, content: string | Array<LanguageModelTextPart | LanguageModelToolResultPart | LanguageModelToolCallPart>, name?: string);
-    }
-    namespace lm {
-        function selectChatModels(selector?: LanguageModelChatSelector): Thenable<LanguageModelChat[]>;
-    }
-}
 
 const ERROR_PREFIX = 'Cline <Language Model API>';
 
@@ -97,6 +20,7 @@ export class VsCodeLmHandler implements ApiHandler {
     private client: vscode.LanguageModelChat | null;
     private configurationWatcher: vscode.Disposable | null;
     private currentRequestCancellation: vscode.CancellationTokenSource | null;
+    private systemPromptTokenCache: Map<string, number>;
 
     constructor(options: ApiHandlerOptions) {
 
@@ -104,6 +28,7 @@ export class VsCodeLmHandler implements ApiHandler {
         this.client = null;
         this.configurationWatcher = null;
         this.currentRequestCancellation = null;
+        this.systemPromptTokenCache = new Map();
 
         try {
 
@@ -152,6 +77,7 @@ export class VsCodeLmHandler implements ApiHandler {
         }
 
         this.client = null; // Release client reference
+        this.systemPromptTokenCache.clear(); // Clear token cache
     }
 
     private releaseCurrentCancellation(): void {
@@ -211,7 +137,7 @@ export class VsCodeLmHandler implements ApiHandler {
                 if (this.currentRequestCancellation?.token.isCancellationRequested) {
                     break;
                 }
-    
+
                 if (chunk instanceof vscode.LanguageModelTextPart && chunk.value) {
                     contentBuilder.push(chunk.value);
                     yield {
@@ -220,7 +146,7 @@ export class VsCodeLmHandler implements ApiHandler {
                     };
                 }
             }
-        } 
+        }
         catch (error) {
             if (error instanceof vscode.CancellationError) {
                 throw new Error(`${ERROR_PREFIX}: Request cancelled by user`);
@@ -233,8 +159,23 @@ export class VsCodeLmHandler implements ApiHandler {
     }
 
     private async calculateInputTokens(systemPrompt: string, messages: MessageParamWithTokenCount[]): Promise<number> {
+        let totalTokens = 0;
 
-        let totalTokens: number = await this.countTokens(systemPrompt);
+        // Hash the system prompt using Web Crypto API (available in both Node.js and browser)
+        const encoder = new TextEncoder();
+        const data = encoder.encode(systemPrompt);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+        // Check cache using hash
+        const cached = this.systemPromptTokenCache.get(hash);
+        if (cached !== undefined) {
+            totalTokens = cached;
+        } else {
+            totalTokens = await this.countTokens(systemPrompt);
+            this.systemPromptTokenCache.set(hash, totalTokens);
+        }
 
         for (const msg of messages) {
 

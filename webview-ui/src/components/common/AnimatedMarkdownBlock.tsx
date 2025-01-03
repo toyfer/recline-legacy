@@ -6,31 +6,40 @@ const AnimatedContainer = styled.div<{ isPartial: boolean }>`
   .markdown-line {
     position: relative;
     margin-top: 3px;
+    min-height: 1.2em;
   }
 
   .markdown-line:first-child {
     margin-top: 0;
   }
 
+  .markdown-line.code-block {
+    margin-top: 0;
+  }
+
   .markdown-line.animating {
     opacity: 0;
-    transform: translate(-4px, 2px);
-    animation: revealText 0.25s cubic-bezier(0.2, 0.6, 0.35, 1) forwards;
+    transform: translate(-8px, 4px);
+    animation: revealText 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity;
   }
 
   @keyframes revealText {
-    from {
+    0% {
       opacity: 0;
-      transform: translate(-4px, 2px);
+      transform: translate(-8px, 4px);
     }
-    to {
+    50% {
+      opacity: 0.7;
+    }
+    100% {
       opacity: 1;
       transform: translate(0, 0);
     }
   }
 
   ${props => props.isPartial && `
-    &::after {
+    .markdown-line:last-child:not(.code-block)::after {
       content: '▋';
       display: inline-block;
       vertical-align: middle;
@@ -45,39 +54,52 @@ const AnimatedContainer = styled.div<{ isPartial: boolean }>`
   `}
 `;
 
+interface MarkdownLine {
+  text: string;
+  isCodeBlock: boolean;
+}
+
 interface AnimatedMarkdownBlockProps {
   markdown?: string;
   isPartial?: boolean;
 }
 
 const AnimatedMarkdownBlock: React.FC<AnimatedMarkdownBlockProps> = ({ markdown, isPartial = false }) => {
-  const [lines, setLines] = useState<string[]>([]);
+  const [lines, setLines] = useState<MarkdownLine[]>([]);
 
   useEffect(() => {
     if (markdown) {
-      // Split the markdown into lines while preserving code blocks
-      const newLines: string[] = [];
+      const newLines: Array<{ text: string; isCodeBlock: boolean }> = [];
       let currentBlock = '';
       let inCodeBlock = false;
 
-      markdown.split('\n').forEach((line) => {
+      markdown.split('\n').forEach((line, idx, arr) => {
         if (line.startsWith('```')) {
-          inCodeBlock = !inCodeBlock;
-          currentBlock += line + '\n';
           if (!inCodeBlock) {
-            newLines.push(currentBlock);
+            // Start of code block
+            inCodeBlock = true;
+            currentBlock = line + '\n';
+          } else {
+            // End of code block
+            currentBlock += line;
+            newLines.push({ text: currentBlock, isCodeBlock: true });
             currentBlock = '';
+            inCodeBlock = false;
           }
         } else if (inCodeBlock) {
           currentBlock += line + '\n';
+        } else if (line.trim() === '') {
+          // Preserve empty lines outside code blocks
+          newLines.push({ text: '', isCodeBlock: false });
         } else {
-          newLines.push(line);
+          newLines.push({ text: line, isCodeBlock: false });
+        }
+
+        // Handle unclosed code block at end of input
+        if (inCodeBlock && idx === arr.length - 1) {
+          newLines.push({ text: currentBlock, isCodeBlock: true });
         }
       });
-
-      if (currentBlock) {
-        newLines.push(currentBlock);
-      }
 
       setLines(newLines);
     }
@@ -99,13 +121,14 @@ const AnimatedMarkdownBlock: React.FC<AnimatedMarkdownBlockProps> = ({ markdown,
     <AnimatedContainer isPartial={isPartial}>
       {lines.map((line, index) => (
         <div
-          key={`${line}-${index}`}
-          className={`markdown-line ${shouldAnimate ? 'animating' : ''}`}
+          key={`${line.text}-${index}`}
+          className={`markdown-line ${line.isCodeBlock ? 'code-block' : ''} ${shouldAnimate ? 'animating' : ''}`}
           style={{
-            animationDelay: `${Math.min(index * 25, 200)}ms`,
-            whiteSpace: 'pre-wrap'
+            animationDelay: `${Math.min(index * 30, 400)}ms`,
+            whiteSpace: 'pre-wrap',
+            backfaceVisibility: 'hidden'
           }}>
-          <MarkdownBlock markdown={line} />
+          <MarkdownBlock markdown={line.text} />
         </div>
       ))}
     </AnimatedContainer>
