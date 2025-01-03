@@ -19,9 +19,10 @@ export class VertexHandler implements ApiHandler {
 	}
 
 	async *createMessage(systemPrompt: string, messages: Anthropic.Messages.MessageParam[]): ApiStream {
+        const model = await this.getModel()
 		const stream = await this.client.messages.create({
-			model: this.getModel().id,
-			max_tokens: this.getModel().info.maxTokens || 8192,
+			model: model.id,
+			max_tokens: model.info.maxTokens || 8192,
 			temperature: 0,
 			system: systemPrompt,
 			messages,
@@ -75,7 +76,7 @@ export class VertexHandler implements ApiHandler {
 		}
 	}
 
-	getModel(): { id: VertexModelId; info: ModelInfo } {
+	async getModel(): Promise<{ id: VertexModelId; info: ModelInfo }> {
 		const modelId = this.options.apiModelId
 		if (modelId && modelId in vertexModels) {
 			const id = modelId as VertexModelId

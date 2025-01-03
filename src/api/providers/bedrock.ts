@@ -26,28 +26,29 @@ export class AwsBedrockHandler implements ApiHandler {
 
 	async *createMessage(systemPrompt: string, messages: Anthropic.Messages.MessageParam[]): ApiStream {
 		// cross region inference requires prefixing the model id with the region
+        const model = await this.getModel();
 		let modelId: string
 		if (this.options.awsUseCrossRegionInference) {
 			let regionPrefix = (this.options.awsRegion || "").slice(0, 3)
 			switch (regionPrefix) {
 				case "us-":
-					modelId = `us.${this.getModel().id}`
+					modelId = `us.${model.id}`
 					break
 				case "eu-":
-					modelId = `eu.${this.getModel().id}`
+					modelId = `eu.${model.id}`
 					break
 				default:
 					// cross region inference is not supported in this region, falling back to default model
-					modelId = this.getModel().id
+					modelId = model.id
 					break
 			}
 		} else {
-			modelId = this.getModel().id
+			modelId = model.id
 		}
 
 		const stream = await this.client.messages.create({
 			model: modelId,
-			max_tokens: this.getModel().info.maxTokens || 8192,
+			max_tokens: model.info.maxTokens || 8192,
 			temperature: 0,
 			system: systemPrompt,
 			messages,
@@ -101,7 +102,7 @@ export class AwsBedrockHandler implements ApiHandler {
 		}
 	}
 
-	getModel(): { id: BedrockModelId; info: ModelInfo } {
+	async getModel(): Promise<{ id: string; info: ModelInfo }> {
 		const modelId = this.options.apiModelId
 		if (modelId && modelId in bedrockModels) {
 			const id = modelId as BedrockModelId

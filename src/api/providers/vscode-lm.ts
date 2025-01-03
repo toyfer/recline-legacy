@@ -4,12 +4,11 @@ import { ApiHandler } from "../";
 import { calculateApiCost } from "../../utils/cost";
 import { ApiStream } from "../transform/stream";
 import { convertToVsCodeLmMessages } from "../transform/vscode-lm-format";
-import { SELECTOR_SEPARATOR, stringifyVsCodeLmModelSelector } from "../../shared/vsCodeSelectorUtils";
+import { stringifyVsCodeLmModelSelector } from "../../shared/vsCodeSelectorUtils";
 import {
     ApiHandlerOptions,
     ModelInfo,
-    MessageParamWithTokenCount,
-    openAiModelInfoSaneDefaults
+    MessageParamWithTokenCount
 } from "../../shared/api";
 
 // Cline does not update VSCode type definitions or engine requirements to maintain compatibility.
@@ -292,7 +291,7 @@ export class VsCodeLmHandler implements ApiHandler {
             this.releaseCurrentCancellation();
             
             const client: vscode.LanguageModelChat = await this.getClient();
-            const model = this.getModel();
+            const model = await this.getModel();
             this.currentRequestCancellation = new vscode.CancellationTokenSource();
 
             const totalInputTokens: number = await this.calculateInputTokens(systemPrompt, messages);
@@ -350,33 +349,15 @@ export class VsCodeLmHandler implements ApiHandler {
         }
     }
 
-    getModel(): { id: string; info: ModelInfo; } {
+    async getModel(): Promise<{ id: string; info: ModelInfo; }> {
 
-        if (!this.client) {
-
-            return {
-                id: this.options.vsCodeLmModelSelector
-                    ? stringifyVsCodeLmModelSelector(this.options.vsCodeLmModelSelector)
-                    : "vscode-lm",
-                info: openAiModelInfoSaneDefaults
-            };
-        }
-
-        const modelId: string = (
-            this.client.id
-            || (
-                [this.client.vendor, this.client.family]
-                    .filter(Boolean)
-                    .join(SELECTOR_SEPARATOR)
-            )
-            || "vscode-lm-unknown"
-        );
+        const client: vscode.LanguageModelChat = await this.getClient();
 
         return {
-            id: modelId,
+            id: stringifyVsCodeLmModelSelector(client),
             info: {
                 maxTokens: -1,
-                contextWindow: Math.max(0, this.client.maxInputTokens),
+                contextWindow: Math.max(0, client.maxInputTokens),
                 supportsImages: false,
                 supportsPromptCache: false,
                 inputPrice: 0,

@@ -18,9 +18,10 @@ export class DeepSeekHandler implements ApiHandler {
 	}
 
 	async *createMessage(systemPrompt: string, messages: Anthropic.Messages.MessageParam[]): ApiStream {
+        const model = await this.getModel();
 		const stream = await this.client.chat.completions.create({
-			model: this.getModel().id,
-			max_completion_tokens: this.getModel().info.maxTokens,
+			model: model.id,
+			max_completion_tokens: model.info.maxTokens,
 			temperature: 0,
 			messages: [{ role: "system", content: systemPrompt }, ...convertToOpenAiMessages(messages)],
 			stream: true,
@@ -50,7 +51,7 @@ export class DeepSeekHandler implements ApiHandler {
 		}
 	}
 
-	getModel(): { id: DeepSeekModelId; info: ModelInfo } {
+	async getModel(): Promise<{ id: DeepSeekModelId; info: ModelInfo }> {
 		const modelId = this.options.apiModelId
 		if (modelId && modelId in deepSeekModels) {
 			const id = modelId as DeepSeekModelId

@@ -61,7 +61,7 @@ export class OpenAiHandler implements ApiHandler {
 		}
 	}
 
-	getModel(): { id: string; info: ModelInfo } {
+	async getModel(): Promise<{ id: string; info: ModelInfo }> {
 		return {
 			id: this.options.openAiModelId ?? "",
 			info: openAiModelInfoSaneDefaults,

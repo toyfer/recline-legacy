@@ -18,14 +18,15 @@ export class GeminiHandler implements ApiHandler {
 	}
 
 	async *createMessage(systemPrompt: string, messages: Anthropic.Messages.MessageParam[]): ApiStream {
+        const info = await this.getModel();
 		const model = this.client.getGenerativeModel({
-			model: this.getModel().id,
+			model: info.id,
 			systemInstruction: systemPrompt,
 		})
 		const result = await model.generateContentStream({
 			contents: messages.map(convertAnthropicMessageToGemini),
 			generationConfig: {
-				// maxOutputTokens: this.getModel().info.maxTokens,
+				// maxOutputTokens: info.maxTokens,
 				temperature: 0,
 			},
 		})
@@ -45,7 +46,7 @@ export class GeminiHandler implements ApiHandler {
 		}
 	}
 
-	getModel(): { id: GeminiModelId; info: ModelInfo } {
+	async getModel(): Promise<{ id: GeminiModelId; info: ModelInfo }> {
 		const modelId = this.options.apiModelId
 		if (modelId && modelId in geminiModels) {
 			const id = modelId as GeminiModelId

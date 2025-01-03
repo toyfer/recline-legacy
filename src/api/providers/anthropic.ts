@@ -24,8 +24,8 @@ export class AnthropicHandler implements ApiHandler {
 
 	async *createMessage(systemPrompt: string, messages: Anthropic.Messages.MessageParam[]): ApiStream {
 		let stream: AnthropicStream<Anthropic.Beta.PromptCaching.Messages.RawPromptCachingBetaMessageStreamEvent>
-		const modelId = this.getModel().id
-		switch (modelId) {
+		const model = await this.getModel()
+		switch (model.id) {
 			// 'latest' alias does not support cache_control
 			case "claude-3-5-sonnet-20241022":
 			case "claude-3-5-haiku-20241022":
@@ -42,8 +42,8 @@ export class AnthropicHandler implements ApiHandler {
 				const secondLastMsgUserIndex = userMsgIndices[userMsgIndices.length - 2] ?? -1
 				stream = await this.client.beta.promptCaching.messages.create(
 					{
-						model: modelId,
-						max_tokens: this.getModel().info.maxTokens || 8192,
+						model: model.id,
+						max_tokens: model.info.maxTokens || 8192,
 						temperature: 0,
 						system: [{ text: systemPrompt, type: "text", cache_control: { type: "ephemeral" } }], // setting cache breakpoint for system prompt so new tasks can reuse it
 						messages: messages.map((message, index) => {
@@ -68,7 +68,7 @@ export class AnthropicHandler implements ApiHandler {
 							}
 							return message
 						}),
-						// tools, // cache breakpoints go from tools > system > messages, and since tools dont change, we can just set the breakpoint at the end of system (this avoids having to set a breakpoint at the end of tools which by itself does not meet min requirements for haiku caching)
+						// tools, // cache breakpoints go from tools > system > messages, and since tools don't change, we can just set the breakpoint at the end of system (this avoids having to set a breakpoint at the end of tools which by itself does not meet min requirements for haiku caching)
 						// tool_choice: { type: "auto" },
 						// tools: tools,
 						stream: true,
@@ -77,7 +77,7 @@ export class AnthropicHandler implements ApiHandler {
 						// prompt caching: https://x.com/alexalbert__/status/1823751995901272068
 						// https://github.com/anthropics/anthropic-sdk-typescript?tab=readme-ov-file#default-headers
 						// https://github.com/anthropics/anthropic-sdk-typescript/commit/c920b77fc67bd839bfeb6716ceab9d7c9bbe7393
-						switch (modelId) {
+						switch (model.id) {
 							case "claude-3-5-sonnet-20241022":
 							case "claude-3-5-haiku-20241022":
 							case "claude-3-opus-20240229":
@@ -94,8 +94,8 @@ export class AnthropicHandler implements ApiHandler {
 			}
 			default: {
 				stream = (await this.client.messages.create({
-					model: modelId,
-					max_tokens: this.getModel().info.maxTokens || 8192,
+					model: model.id,
+					max_tokens: model.info.maxTokens || 8192,
 					temperature: 0,
 					system: [{ text: systemPrompt, type: "text" }],
 					messages,
@@ -165,7 +165,7 @@ export class AnthropicHandler implements ApiHandler {
 		}
 	}
 
-	getModel(): { id: AnthropicModelId; info: ModelInfo } {
+	async getModel(): Promise<{ id: string; info: ModelInfo }> {
 		const modelId = this.options.apiModelId
 		if (modelId && modelId in anthropicModels) {
 			const id = modelId as AnthropicModelId

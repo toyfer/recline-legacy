@@ -30,9 +30,11 @@ export class OpenRouterHandler implements ApiHandler {
 			...convertToOpenAiMessages(messages),
 		]
 
+        const model = await this.getModel();
+
 		// prompt caching: https://openrouter.ai/docs/prompt-caching
 		// this is specifically for claude models (some models may 'support prompt caching' automatically without this)
-		switch (this.getModel().id) {
+		switch (model.id) {
 			case "anthropic/claude-3.5-sonnet":
 			case "anthropic/claude-3.5-sonnet:beta":
 			case "anthropic/claude-3.5-sonnet-20240620":
@@ -83,7 +85,7 @@ export class OpenRouterHandler implements ApiHandler {
 		// Not sure how openrouter defaults max tokens when no value is provided, but the anthropic api requires this value and since they offer both 4096 and 8192 variants, we should ensure 8192.
 		// (models usually default to max tokens allowed)
 		let maxTokens: number | undefined
-		switch (this.getModel().id) {
+		switch (model.id) {
 			case "anthropic/claude-3.5-sonnet":
 			case "anthropic/claude-3.5-sonnet:beta":
 			case "anthropic/claude-3.5-sonnet-20240620":
@@ -97,15 +99,15 @@ export class OpenRouterHandler implements ApiHandler {
 		}
 
 		// Removes messages in the middle when close to context window limit. Should not be applied to models that support prompt caching since it would continuously break the cache.
-		let shouldApplyMiddleOutTransform = !this.getModel().info.supportsPromptCache
+		let shouldApplyMiddleOutTransform = !model.info.supportsPromptCache
 		// except for deepseek (which we set supportsPromptCache to true for), where because the context window is so small our truncation algo might miss and we should use openrouter's middle-out transform as a fallback to ensure we don't exceed the context window (FIXME: once we have a more robust token estimator we should not rely on this)
-		if (this.getModel().id === "deepseek/deepseek-chat") {
+		if (model.id === "deepseek/deepseek-chat") {
 			shouldApplyMiddleOutTransform = true
 		}
 
 		// @ts-ignore-next-line
 		const stream = await this.client.chat.completions.create({
-			model: this.getModel().id,
+			model: model.id,
 			max_tokens: maxTokens,
 			temperature: 0,
 			messages: openAiMessages,
@@ -170,7 +172,7 @@ export class OpenRouterHandler implements ApiHandler {
 		}
 	}
 
-	getModel(): { id: string; info: ModelInfo } {
+	async getModel(): Promise<{ id: string; info: ModelInfo }> {
 		const modelId = this.options.openRouterModelId
 		const modelInfo = this.options.openRouterModelInfo
 		if (modelId && modelInfo) {

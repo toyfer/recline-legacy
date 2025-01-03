@@ -23,8 +23,9 @@ export class OllamaHandler implements ApiHandler {
 			...convertToOpenAiMessages(messages),
 		]
 
+        const model = await this.getModel();
 		const stream = await this.client.chat.completions.create({
-			model: this.getModel().id,
+			model: model.id,
 			messages: openAiMessages,
 			temperature: 0,
 			stream: true,
@@ -40,7 +41,7 @@ export class OllamaHandler implements ApiHandler {
 		}
 	}
 
-	getModel(): { id: string; info: ModelInfo } {
+	async getModel(): Promise<{ id: string; info: ModelInfo }> {
 		return {
 			id: this.options.ollamaModelId || "",
 			info: openAiModelInfoSaneDefaults,

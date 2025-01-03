@@ -24,8 +24,9 @@ export class LmStudioHandler implements ApiHandler {
 		]
 
 		try {
+            const model = await this.getModel();
 			const stream = await this.client.chat.completions.create({
-				model: this.getModel().id,
+				model: model.id,
 				messages: openAiMessages,
 				temperature: 0,
 				stream: true,
@@ -47,7 +48,7 @@ export class LmStudioHandler implements ApiHandler {
 		}
 	}
 
-	getModel(): { id: string; info: ModelInfo } {
+	async getModel(): Promise<{ id: string; info: ModelInfo }> {
 		return {
 			id: this.options.lmStudioModelId || "",
 			info: openAiModelInfoSaneDefaults,
