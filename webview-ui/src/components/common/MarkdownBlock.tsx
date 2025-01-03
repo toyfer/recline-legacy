@@ -8,7 +8,40 @@ import { CODE_BLOCK_BG_COLOR } from "./CodeBlock"
 
 interface MarkdownBlockProps {
 	markdown?: string
+	isPartial?: boolean
 }
+
+const AnimatedText = styled.div<{ isPartial: boolean }>`
+	position: relative;
+
+	&:after {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: linear-gradient(
+			90deg,
+			transparent 0%,
+			var(--vscode-editor-foreground) 45%,
+			transparent 90%
+		);
+		opacity: ${props => props.isPartial ? 0.3 : 0};
+		transition: opacity 0.3s ease-out;
+		background-size: 200% 100%;
+		animation: ${props => props.isPartial ? 'sweep 1.5s linear infinite' : 'none'};
+	}
+
+	@keyframes sweep {
+		0% {
+			transform: translateX(-100%);
+		}
+		100% {
+			transform: translateX(100%);
+		}
+	}
+`
 
 /**
  * Custom remark plugin that converts plain URLs in text into clickable links
@@ -156,7 +189,7 @@ const StyledPre = styled.pre<{ theme: any }>`
 			.join("")}
 `
 
-const MarkdownBlock = memo(({ markdown }: MarkdownBlockProps) => {
+const MarkdownBlock = memo(({ markdown, isPartial }: MarkdownBlockProps) => {
 	const { theme } = useExtensionState()
 	const [reactContent, setMarkdown] = useRemark({
 		remarkPlugins: [
@@ -192,7 +225,11 @@ const MarkdownBlock = memo(({ markdown }: MarkdownBlockProps) => {
 
 	return (
 		<div style={{}}>
-			<StyledMarkdown>{reactContent}</StyledMarkdown>
+			<StyledMarkdown>
+				<AnimatedText isPartial={isPartial ?? false}>
+					{reactContent}
+				</AnimatedText>
+			</StyledMarkdown>
 		</div>
 	)
 })

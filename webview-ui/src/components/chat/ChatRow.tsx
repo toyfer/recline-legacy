@@ -1,42 +1,42 @@
-import { VSCodeBadge, VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react"
-import deepEqual from "fast-deep-equal"
-import React, { memo, useEffect, useMemo, useRef } from "react"
-import { useSize } from "react-use"
+import { VSCodeBadge, VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react";
+import deepEqual from "fast-deep-equal";
+import React, { memo, useEffect, useMemo, useRef } from "react";
+import { useSize } from "react-use";
 import {
 	ClineApiReqInfo,
 	ClineAskUseMcpServer,
 	ClineMessage,
 	ClineSayTool,
-} from "../../../../src/shared/ExtensionMessage"
-import { COMMAND_OUTPUT_STRING, COMMAND_REQ_APP_STRING } from "../../../../src/shared/combineCommandSequences"
-import { useExtensionState } from "../../context/ExtensionStateContext"
-import { findMatchingResourceOrTemplate } from "../../utils/mcp"
-import { vscode } from "../../utils/vscode"
-import CodeAccordian, { removeLeadingNonAlphanumeric } from "../common/CodeAccordian"
-import CodeBlock, { CODE_BLOCK_BG_COLOR } from "../common/CodeBlock"
-import MarkdownBlock from "../common/MarkdownBlock"
-import Thumbnails from "../common/Thumbnails"
-import McpResourceRow from "../mcp/McpResourceRow"
-import McpToolRow from "../mcp/McpToolRow"
-import { highlightMentions } from "./TaskHeader"
+} from "../../../../src/shared/ExtensionMessage";
+import { COMMAND_OUTPUT_STRING, COMMAND_REQ_APP_STRING } from "../../../../src/shared/combineCommandSequences";
+import { useExtensionState } from "../../context/ExtensionStateContext";
+import { findMatchingResourceOrTemplate } from "../../utils/mcp";
+import { vscode } from "../../utils/vscode";
+import CodeAccordian, { removeLeadingNonAlphanumeric } from "../common/CodeAccordian";
+import CodeBlock, { CODE_BLOCK_BG_COLOR } from "../common/CodeBlock";
+import MarkdownBlock from "../common/MarkdownBlock";
+import Thumbnails from "../common/Thumbnails";
+import McpResourceRow from "../mcp/McpResourceRow";
+import McpToolRow from "../mcp/McpToolRow";
+import { highlightMentions } from "./TaskHeader";
 
 interface ChatRowProps {
-	message: ClineMessage
-	isExpanded: boolean
-	onToggleExpand: () => void
-	lastModifiedMessage?: ClineMessage
-	isLast: boolean
-	onHeightChange: (isTaller: boolean) => void
+	message: ClineMessage;
+	isExpanded: boolean;
+	onToggleExpand: () => void;
+	lastModifiedMessage?: ClineMessage;
+	isLast: boolean;
+	onHeightChange: (isTaller: boolean) => void;
 }
 
-interface ChatRowContentProps extends Omit<ChatRowProps, "onHeightChange"> {}
+interface ChatRowContentProps extends Omit<ChatRowProps, "onHeightChange"> { }
 
 const ChatRow = memo(
 	(props: ChatRowProps) => {
-		const { isLast, onHeightChange, message } = props
+		const { isLast, onHeightChange, message } = props;
 		// Store the previous height to compare with the current height
 		// This allows us to detect changes without causing re-renders
-		const prevHeightRef = useRef(0)
+		const prevHeightRef = useRef(0);
 
 		const [chatrow, { height }] = useSize(
 			<div
@@ -45,29 +45,29 @@ const ChatRow = memo(
 				}}>
 				<ChatRowContent {...props} />
 			</div>,
-		)
+		);
 
 		useEffect(() => {
 			// used for partials, command output, etc.
 			// NOTE: it's important we don't distinguish between partial or complete here since our scroll effects in chatview need to handle height change during partial -> complete
-			const isInitialRender = prevHeightRef.current === 0 // prevents scrolling when new element is added since we already scroll for that
+			const isInitialRender = prevHeightRef.current === 0; // prevents scrolling when new element is added since we already scroll for that
 			// height starts off at Infinity
 			if (isLast && height !== 0 && height !== Infinity && height !== prevHeightRef.current) {
 				if (!isInitialRender) {
-					onHeightChange(height > prevHeightRef.current)
+					onHeightChange(height > prevHeightRef.current);
 				}
-				prevHeightRef.current = height
+				prevHeightRef.current = height;
 			}
-		}, [height, isLast, onHeightChange, message])
+		}, [height, isLast, onHeightChange, message]);
 
 		// we cannot return null as virtuoso does not support it, so we use a separate visibleMessages array to filter out messages that should not be rendered
-		return chatrow
+		return chatrow;
 	},
 	// memo does shallow comparison of props, so we need to do deep comparison of arrays/objects whose properties might change
 	deepEqual,
-)
+);
 
-export default ChatRow
+export default ChatRow;
 
 export const ChatRowContent = ({
 	message,
@@ -76,32 +76,32 @@ export const ChatRowContent = ({
 	lastModifiedMessage,
 	isLast,
 }: ChatRowContentProps) => {
-	const { mcpServers } = useExtensionState()
+	const { mcpServers } = useExtensionState();
 	const [cost, apiReqCancelReason, apiReqStreamingFailedMessage] = useMemo(() => {
 		if (message.text != null && message.say === "api_req_started") {
-			const info: ClineApiReqInfo = JSON.parse(message.text)
-			return [info.cost, info.cancelReason, info.streamingFailedMessage]
+			const info: ClineApiReqInfo = JSON.parse(message.text);
+			return [info.cost, info.cancelReason, info.streamingFailedMessage];
 		}
-		return [undefined, undefined, undefined]
-	}, [message.text, message.say])
+		return [undefined, undefined, undefined];
+	}, [message.text, message.say]);
 	// when resuming task, last wont be api_req_failed but a resume_task message, so api_req_started will show loading spinner. that's why we just remove the last api_req_started that failed without streaming anything
 	const apiRequestFailedMessage =
 		isLast && lastModifiedMessage?.ask === "api_req_failed" // if request is retried then the latest message is a api_req_retried
 			? lastModifiedMessage?.text
-			: undefined
+			: undefined;
 	const isCommandExecuting =
 		isLast &&
 		(lastModifiedMessage?.ask === "command" || lastModifiedMessage?.say === "command") &&
-		lastModifiedMessage?.text?.includes(COMMAND_OUTPUT_STRING)
+		lastModifiedMessage?.text?.includes(COMMAND_OUTPUT_STRING);
 
-	const isMcpServerResponding = isLast && lastModifiedMessage?.say === "mcp_server_request_started"
+	const isMcpServerResponding = isLast && lastModifiedMessage?.say === "mcp_server_request_started";
 
-	const type = message.type === "ask" ? message.ask : message.say
+	const type = message.type === "ask" ? message.ask : message.say;
 
-	const normalColor = "var(--vscode-foreground)"
-	const errorColor = "var(--vscode-errorForeground)"
-	const successColor = "var(--vscode-charts-green)"
-	const cancelledColor = "var(--vscode-descriptionForeground)"
+	const normalColor = "var(--vscode-foreground)";
+	const errorColor = "var(--vscode-errorForeground)";
+	const successColor = "var(--vscode-charts-green)";
+	const cancelledColor = "var(--vscode-descriptionForeground)";
 
 	const [icon, title] = useMemo(() => {
 		switch (type) {
@@ -111,21 +111,21 @@ export const ChatRowContent = ({
 						className="codicon codicon-error"
 						style={{ color: errorColor, marginBottom: "-1.5px" }}></span>,
 					<span style={{ color: errorColor, fontWeight: "bold" }}>Error</span>,
-				]
+				];
 			case "mistake_limit_reached":
 				return [
 					<span
 						className="codicon codicon-error"
 						style={{ color: errorColor, marginBottom: "-1.5px" }}></span>,
 					<span style={{ color: errorColor, fontWeight: "bold" }}>Cline is having trouble...</span>,
-				]
+				];
 			case "auto_approval_max_req_reached":
 				return [
 					<span
 						className="codicon codicon-warning"
 						style={{ color: errorColor, marginBottom: "-1.5px" }}></span>,
 					<span style={{ color: errorColor, fontWeight: "bold" }}>Maximum Requests Reached</span>,
-				]
+				];
 			case "command":
 				return [
 					isCommandExecuting ? (
@@ -140,9 +140,9 @@ export const ChatRowContent = ({
 							? "Cline wants to execute this command:"
 							: "Cline executed this command:"}
 					</span>,
-				]
+				];
 			case "use_mcp_server":
-				const mcpServerUse = JSON.parse(message.text || "{}") as ClineAskUseMcpServer
+				const mcpServerUse = JSON.parse(message.text || "{}") as ClineAskUseMcpServer;
 				return [
 					isMcpServerResponding ? (
 						<ProgressIndicator />
@@ -165,14 +165,14 @@ export const ChatRowContent = ({
 							</>
 						)}
 					</span>,
-				]
+				];
 			case "completion_result":
 				return [
 					<span
 						className="codicon codicon-check"
 						style={{ color: successColor, marginBottom: "-1.5px" }}></span>,
 					<span style={{ color: successColor, fontWeight: "bold" }}>Task Completed</span>,
-				]
+				];
 			case "api_req_started":
 				const getIconSpan = (iconName: string, color: string) => (
 					<div
@@ -191,7 +191,7 @@ export const ChatRowContent = ({
 								marginBottom: "-1.5px",
 							}}></span>
 					</div>
-				)
+				);
 				return [
 					apiReqCancelReason != null ? (
 						apiReqCancelReason === "user_cancelled" ? (
@@ -219,16 +219,16 @@ export const ChatRowContent = ({
 					) : (
 						<span style={{ color: normalColor, fontWeight: "bold" }}>API Request...</span>
 					),
-				]
+				];
 			case "followup":
 				return [
 					<span
 						className="codicon codicon-question"
 						style={{ color: normalColor, marginBottom: "-1.5px" }}></span>,
 					<span style={{ color: normalColor, fontWeight: "bold" }}>Cline has a question:</span>,
-				]
+				];
 			default:
-				return [null, null]
+				return [null, null];
 		}
 	}, [
 		type,
@@ -239,35 +239,35 @@ export const ChatRowContent = ({
 		isMcpServerResponding,
 		message.text,
 		message.type,
-	])
+	]);
 
 	const headerStyle: React.CSSProperties = {
 		display: "flex",
 		alignItems: "center",
 		gap: "10px",
 		marginBottom: "10px",
-	}
+	};
 
 	const pStyle: React.CSSProperties = {
 		margin: 0,
 		whiteSpace: "pre-wrap",
 		wordBreak: "break-word",
 		overflowWrap: "anywhere",
-	}
+	};
 
 	const tool = useMemo(() => {
 		if (message.ask === "tool" || message.say === "tool") {
-			return JSON.parse(message.text || "{}") as ClineSayTool
+			return JSON.parse(message.text || "{}") as ClineSayTool;
 		}
-		return null
-	}, [message.ask, message.say, message.text])
+		return null;
+	}, [message.ask, message.say, message.text]);
 
 	if (tool) {
 		const toolIcon = (name: string) => (
 			<span
 				className={`codicon codicon-${name}`}
 				style={{ color: "var(--vscode-foreground)", marginBottom: "-1.5px" }}></span>
-		)
+		);
 
 		switch (tool.tool) {
 			case "editedExistingFile":
@@ -289,7 +289,7 @@ export const ChatRowContent = ({
 							onToggleExpand={onToggleExpand}
 						/>
 					</>
-				)
+				);
 			case "newFileCreated":
 				return (
 					<>
@@ -309,7 +309,7 @@ export const ChatRowContent = ({
 							onToggleExpand={onToggleExpand}
 						/>
 					</>
-				)
+				);
 			case "readFile":
 				return (
 					<>
@@ -345,7 +345,7 @@ export const ChatRowContent = ({
 									msUserSelect: "none",
 								}}
 								onClick={() => {
-									vscode.postMessage({ type: "openFile", text: tool.content })
+									vscode.postMessage({ type: "openFile", text: tool.content });
 								}}>
 								{tool.path?.startsWith(".") && <span>.</span>}
 								<span
@@ -366,7 +366,7 @@ export const ChatRowContent = ({
 							</div>
 						</div>
 					</>
-				)
+				);
 			case "listFilesTopLevel":
 				return (
 					<>
@@ -386,7 +386,7 @@ export const ChatRowContent = ({
 							onToggleExpand={onToggleExpand}
 						/>
 					</>
-				)
+				);
 			case "listFilesRecursive":
 				return (
 					<>
@@ -406,7 +406,7 @@ export const ChatRowContent = ({
 							onToggleExpand={onToggleExpand}
 						/>
 					</>
-				)
+				);
 			case "listCodeDefinitionNames":
 				return (
 					<>
@@ -425,7 +425,7 @@ export const ChatRowContent = ({
 							onToggleExpand={onToggleExpand}
 						/>
 					</>
-				)
+				);
 			case "searchFiles":
 				return (
 					<>
@@ -451,7 +451,7 @@ export const ChatRowContent = ({
 							onToggleExpand={onToggleExpand}
 						/>
 					</>
-				)
+				);
 			// case "inspectSite":
 			// 	const isInspecting =
 			// 		isLast && lastModifiedMessage?.say === "inspect_site_result" && !lastModifiedMessage?.images
@@ -479,15 +479,15 @@ export const ChatRowContent = ({
 			// 		</>
 			// 	)
 			default:
-				return null
+				return null;
 		}
 	}
 
 	if (message.ask === "command" || message.say === "command") {
 		const splitMessage = (text: string) => {
-			const outputIndex = text.indexOf(COMMAND_OUTPUT_STRING)
+			const outputIndex = text.indexOf(COMMAND_OUTPUT_STRING);
 			if (outputIndex === -1) {
-				return { command: text, output: "" }
+				return { command: text, output: "" };
 			}
 			return {
 				command: text.slice(0, outputIndex).trim(),
@@ -498,25 +498,25 @@ export const ChatRowContent = ({
 					.map((char) => {
 						switch (char) {
 							case "\t":
-								return "→   "
+								return "→   ";
 							case "\b":
-								return "⌫"
+								return "⌫";
 							case "\f":
-								return "⏏"
+								return "⏏";
 							case "\v":
-								return "⇳"
+								return "⇳";
 							default:
-								return char
+								return char;
 						}
 					})
 					.join(""),
-			}
-		}
+			};
+		};
 
-		const { command: rawCommand, output } = splitMessage(message.text || "")
+		const { command: rawCommand, output } = splitMessage(message.text || "");
 
-		const requestsApproval = rawCommand.endsWith(COMMAND_REQ_APP_STRING)
-		const command = requestsApproval ? rawCommand.slice(0, -COMMAND_REQ_APP_STRING.length) : rawCommand
+		const requestsApproval = rawCommand.endsWith(COMMAND_REQ_APP_STRING);
+		const command = requestsApproval ? rawCommand.slice(0, -COMMAND_REQ_APP_STRING.length) : rawCommand;
 
 		return (
 			<>
@@ -571,12 +571,12 @@ export const ChatRowContent = ({
 					</div>
 				)}
 			</>
-		)
+		);
 	}
 
 	if (message.ask === "use_mcp_server" || message.say === "use_mcp_server") {
-		const useMcpServer = JSON.parse(message.text || "{}") as ClineAskUseMcpServer
-		const server = mcpServers.find((server) => server.name === useMcpServer.serverName)
+		const useMcpServer = JSON.parse(message.text || "{}") as ClineAskUseMcpServer;
+		const server = mcpServers.find((server) => server.name === useMcpServer.serverName);
 		return (
 			<>
 				<div style={headerStyle}>
@@ -643,7 +643,7 @@ export const ChatRowContent = ({
 					)}
 				</div>
 			</>
-		)
+		);
 	}
 
 	switch (message.type) {
@@ -742,15 +742,15 @@ export const ChatRowContent = ({
 								</div>
 							)}
 						</>
-					)
+					);
 				case "api_req_finished":
-					return null // we should never see this message type
+					return null; // we should never see this message type
 				case "text":
 					return (
 						<div>
 							<Markdown markdown={message.text} />
 						</div>
-					)
+					);
 				case "user_feedback":
 					return (
 						<div
@@ -767,9 +767,9 @@ export const ChatRowContent = ({
 								<Thumbnails images={message.images} style={{ marginTop: "8px" }} />
 							)}
 						</div>
-					)
+					);
 				case "user_feedback_diff":
-					const tool = JSON.parse(message.text || "{}") as ClineSayTool
+					const tool = JSON.parse(message.text || "{}") as ClineSayTool;
 					return (
 						<div
 							style={{
@@ -783,7 +783,7 @@ export const ChatRowContent = ({
 								onToggleExpand={onToggleExpand}
 							/>
 						</div>
-					)
+					);
 				case "error":
 					return (
 						<>
@@ -795,7 +795,7 @@ export const ChatRowContent = ({
 							)}
 							<p style={{ ...pStyle, color: "var(--vscode-errorForeground)" }}>{message.text}</p>
 						</>
-					)
+					);
 				case "diff_error":
 					return (
 						<>
@@ -824,7 +824,7 @@ export const ChatRowContent = ({
 								</div>
 							</div>
 						</>
-					)
+					);
 				case "completion_result":
 					return (
 						<>
@@ -836,7 +836,7 @@ export const ChatRowContent = ({
 								<Markdown markdown={message.text} />
 							</div>
 						</>
-					)
+					);
 				case "shell_integration_warning":
 					return (
 						<>
@@ -874,7 +874,7 @@ export const ChatRowContent = ({
 								</div>
 							</div>
 						</>
-					)
+					);
 				case "mcp_server_response":
 					return (
 						<>
@@ -896,7 +896,7 @@ export const ChatRowContent = ({
 								/>
 							</div>
 						</>
-					)
+					);
 				default:
 					return (
 						<>
@@ -907,10 +907,10 @@ export const ChatRowContent = ({
 								</div>
 							)}
 							<div style={{ paddingTop: 10 }}>
-								<Markdown markdown={message.text} />
+								<Markdown markdown={message.text} isPartial={message.partial} />
 							</div>
 						</>
-					)
+					);
 			}
 		case "ask":
 			switch (message.ask) {
@@ -923,7 +923,7 @@ export const ChatRowContent = ({
 							</div>
 							<p style={{ ...pStyle, color: "var(--vscode-errorForeground)" }}>{message.text}</p>
 						</>
-					)
+					);
 				case "auto_approval_max_req_reached":
 					return (
 						<>
@@ -933,7 +933,7 @@ export const ChatRowContent = ({
 							</div>
 							<p style={{ ...pStyle, color: "var(--vscode-errorForeground)" }}>{message.text}</p>
 						</>
-					)
+					);
 				case "completion_result":
 					if (message.text) {
 						return (
@@ -946,9 +946,9 @@ export const ChatRowContent = ({
 									<Markdown markdown={message.text} />
 								</div>
 							</div>
-						)
+						);
 					} else {
-						return null // Don't render anything when we get a completion_result ask without text
+						return null; // Don't render anything when we get a completion_result ask without text
 					}
 				case "followup":
 					return (
@@ -963,12 +963,12 @@ export const ChatRowContent = ({
 								<Markdown markdown={message.text} />
 							</div>
 						</>
-					)
+					);
 				default:
-					return null
+					return null;
 			}
 	}
-}
+};
 
 export const ProgressIndicator = () => (
 	<div
@@ -983,12 +983,12 @@ export const ProgressIndicator = () => (
 			<VSCodeProgressRing />
 		</div>
 	</div>
-)
+);
 
-const Markdown = memo(({ markdown }: { markdown?: string }) => {
+const Markdown = memo(({ markdown, isPartial }: { markdown?: string; isPartial?: boolean; }) => {
 	return (
 		<div style={{ wordBreak: "break-word", overflowWrap: "anywhere", marginBottom: -15, marginTop: -15 }}>
-			<MarkdownBlock markdown={markdown} />
+			<MarkdownBlock markdown={markdown} isPartial={isPartial} />
 		</div>
-	)
-})
+	);
+});
