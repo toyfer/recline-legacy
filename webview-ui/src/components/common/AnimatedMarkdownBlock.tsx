@@ -1,17 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import styled from 'styled-components';
 import MarkdownBlock from './MarkdownBlock';
 
 const AnimatedContainer = styled.div<{ isPartial: boolean }>`
   .markdown-line {
     position: relative;
+    margin-top: 3px;
+  }
+
+  .markdown-line:first-child {
+    margin-top: 0;
+  }
+
+  .markdown-line.animating {
     opacity: 0;
     transform: translate(-4px, 2px);
     animation: revealText 0.25s cubic-bezier(0.2, 0.6, 0.35, 1) forwards;
-  }
-
-  .markdown-line:not(:first-child) {
-    margin-top: 3px;
   }
 
   @keyframes revealText {
@@ -79,18 +83,24 @@ const AnimatedMarkdownBlock: React.FC<AnimatedMarkdownBlockProps> = ({ markdown,
     }
   }, [markdown]);
 
-  // Use a timestamp-based key to force re-render on content updates
-  const [renderKey, setRenderKey] = useState(Date.now());
+  const [shouldAnimate, setShouldAnimate] = useState(true);
+  const mountedRef = useRef(false);
+
   useEffect(() => {
-    setRenderKey(Date.now());
-  }, [markdown]);
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    // Only animate if we're getting new content while streaming
+    setShouldAnimate(isPartial);
+  }, [markdown, isPartial]);
 
   return (
     <AnimatedContainer isPartial={isPartial}>
       {lines.map((line, index) => (
         <div
-          key={`${renderKey}-${index}`}
-          className="markdown-line"
+          key={`${line}-${index}`}
+          className={`markdown-line ${shouldAnimate ? 'animating' : ''}`}
           style={{
             animationDelay: `${Math.min(index * 25, 200)}ms`,
             whiteSpace: 'pre-wrap'
