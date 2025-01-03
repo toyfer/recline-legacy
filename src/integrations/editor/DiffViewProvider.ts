@@ -84,11 +84,6 @@ export class DiffViewProvider {
 			throw new Error("Required values not set")
 		}
 		this.newContent = accumulatedContent
-		const accumulatedLines = accumulatedContent.split("\n")
-		if (!isFinal) {
-			accumulatedLines.pop() // remove the last partial line only if it's not the final update
-		}
-		const diffLines = accumulatedLines.slice(this.streamedLines.length)
 
 		const diffEditor = this.activeDiffEditor
 		const document = diffEditor?.document
@@ -96,43 +91,65 @@ export class DiffViewProvider {
 			throw new Error("User closed text editor, unable to edit file...")
 		}
 
-		// Place cursor at the beginning of the diff editor to keep it out of the way of the stream animation
-		const beginningOfDocument = new vscode.Position(0, 0)
-		diffEditor.selection = new vscode.Selection(beginningOfDocument, beginningOfDocument)
-
-		for (let i = 0; i < diffLines.length; i++) {
-			const currentLine = this.streamedLines.length + i
-			// Replace all content up to the current line with accumulated lines
-			// This is necessary (as compared to inserting one line at a time) to handle cases where html tags on previous lines are auto closed for example
-			const edit = new vscode.WorkspaceEdit()
-			const rangeToReplace = new vscode.Range(0, 0, currentLine + 1, 0)
-			const contentToReplace = accumulatedLines.slice(0, currentLine + 1).join("\n") + "\n"
-			edit.replace(document.uri, rangeToReplace, contentToReplace)
-			await vscode.workspace.applyEdit(edit)
-			// Update decorations
-			this.activeLineController.setActiveLine(currentLine)
-			this.fadedOverlayController.updateOverlayAfterLine(currentLine, document.lineCount)
-			// Scroll to the current line
-			this.scrollEditorToLine(currentLine)
+		// Efficiently process content
+		const newLines = accumulatedContent.split("\n")
+		if (!isFinal) {
+			newLines.pop() // remove partial line
 		}
-		// Update the streamedLines with the new accumulated content
-		this.streamedLines = accumulatedLines
+
+		// Calculate actual differences to minimize updates
+		const startLine = this.streamedLines.length
+		const endLine = newLines.length
+		const changedContent = newLines.slice(startLine).join("\n") + "\n"
+
+		// Only update if there are actual changes
+		if (endLine > startLine) {
+			// Place cursor at beginning to avoid interference
+			const beginningOfDocument = new vscode.Position(0, 0)
+			diffEditor.selection = new vscode.Selection(beginningOfDocument, beginningOfDocument)
+
+			// Batch update content
+			const edit = new vscode.WorkspaceEdit()
+			const rangeToReplace = new vscode.Range(startLine, 0, endLine, 0)
+			edit.replace(document.uri, rangeToReplace, changedContent)
+			await vscode.workspace.applyEdit(edit)
+
+			// Efficiently update decorations - only process changed lines
+			const visibleRanges = diffEditor.visibleRanges
+			const isLineVisible = (line: number) => {
+				return visibleRanges.some(range => line >= range.start.line && line <= range.end.line)
+			}
+
+			// Update active line and overlay only if line is in view
+			for (let line = startLine; line < endLine; line++) {
+				if (isLineVisible(line)) {
+					this.activeLineController.setActiveLine(line)
+					this.fadedOverlayController.updateOverlayAfterLine(line, document.lineCount)
+					// Smart scrolling - only scroll if line is not already visible
+					if (line === endLine - 1) {
+						this.scrollEditorToLine(line)
+					}
+				}
+			}
+		}
+
+		// Update tracked content
+		this.streamedLines = newLines
+
 		if (isFinal) {
-			// Handle any remaining lines if the new content is shorter than the original
+			// Handle EOF and cleanup
 			if (this.streamedLines.length < document.lineCount) {
 				const edit = new vscode.WorkspaceEdit()
 				edit.delete(document.uri, new vscode.Range(this.streamedLines.length, 0, document.lineCount, 0))
 				await vscode.workspace.applyEdit(edit)
 			}
-			// Add empty last line if original content had one
-			const hasEmptyLastLine = this.originalContent?.endsWith("\n")
-			if (hasEmptyLastLine) {
-				const accumulatedLines = accumulatedContent.split("\n")
-				if (accumulatedLines[accumulatedLines.length - 1] !== "") {
-					accumulatedContent += "\n"
-				}
+
+			// Preserve EOL consistency
+			if (this.originalContent?.endsWith("\n") && !accumulatedContent.endsWith("\n")) {
+				this.newContent = accumulatedContent + "\n"
 			}
-			// Clear all decorations at the end (before applying final edit)
+
+			// Cleanup decorations
 			this.fadedOverlayController.clear()
 			this.activeLineController.clear()
 		}

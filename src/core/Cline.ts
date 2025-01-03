@@ -45,6 +45,8 @@ import { arePathsEqual, getReadablePath } from "../utils/path"
 import { AssistantMessageContent, parseAssistantMessage, ToolParamName, ToolUseName } from "./assistant-message"
 import { constructNewFileContent } from "./assistant-message/diff"
 import { parseMentions } from "./mentions"
+import { getCachedEnvironmentInfo } from "../integrations/workspace/environment-cache"
+import { EnvironmentInfo } from "../integrations/workspace/get-env-info"
 import { formatResponse } from "./prompts/responses"
 import { addUserInstructions, SYSTEM_PROMPT } from "./prompts/system"
 import { truncateHalfConversation } from "./sliding-window"
@@ -2246,7 +2248,7 @@ export class Cline {
 		}
 
 		/*
-		Seeing out of bounds is fine, it means that the next too call is being built up and ready to add to assistantMessageContent to present. 
+		Seeing out of bounds is fine, it means that the next too call is being built up and ready to add to assistantMessageContent to present.
 		When you see the UI inactive during this, it means that a tool is breaking without presenting any UI. For example the write_to_file tool was breaking when relpath was undefined, and for invalid relpath it never presented UI.
 		*/
 		this.presentAssistantMessageLocked = false // this needs to be placed here, if not then calling this.presentAssistantMessage below would fail (sometimes) since it's locked
@@ -2625,8 +2627,36 @@ export class Cline {
 		])
 	}
 
-	async getEnvironmentDetails(includeFileDetails: boolean = false) {
+async getEnvironmentDetails(includeFileDetails: boolean = false) {
+		// Get environment info from cache
+		const envInfo = await getCachedEnvironmentInfo()
 		let details = ""
+
+		// Add detected environment information if available
+		if (envInfo.python || envInfo.javascript) {
+			details += "\n\n# Development Environment"
+			if (envInfo.python) {
+				details += `\nPython Environment: ${envInfo.python}`
+			}
+			if (envInfo.javascript) {
+				const js = envInfo.javascript
+				if (js.nodeVersion) {
+					details += `\nNode.js Version: ${js.nodeVersion}`
+				}
+				if (js.typescript) {
+					details += `\nTypeScript Version: ${js.typescript.version}`
+				}
+				if ((js.packageManagers?.length || 0) > 0) {
+					details += "\nPackage Managers:"
+					js.packageManagers!.forEach((pm) => {
+						details += `\n  ${pm.name} ${pm.version}`
+						if (pm.globalPackages.length > 0) {
+							details += `\n    Global packages: ${pm.globalPackages.join(", ")}`
+						}
+					})
+				}
+			}
+		}
 
 		// It could be useful for cline to know if the user went from one or no file to another between messages, so we always include this context
 		details += "\n\n# VSCode Visible Files"

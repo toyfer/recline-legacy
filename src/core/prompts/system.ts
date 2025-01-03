@@ -2,6 +2,7 @@ import defaultShell from "default-shell"
 import os from "os"
 import osName from "os-name"
 import { McpHub } from "../../services/mcp/McpHub"
+import { getEnvironmentInfo } from "../../integrations/workspace/get-env-info"
 
 export const SYSTEM_PROMPT = async (
 	cwd: string,
@@ -494,7 +495,7 @@ class WeatherServer {
 
     this.setupResourceHandlers();
     this.setupToolHandlers();
-    
+
     // Error handling
     this.server.onerror = (error) => console.error('[MCP Error]', error);
     process.on('SIGINT', async () => {
@@ -753,14 +754,14 @@ You have access to two tools for working with files: **write_to_file** and **rep
 
 ## When to Use
 
-- Initial file creation, such as when scaffolding a new project.  
+- Initial file creation, such as when scaffolding a new project.
 - Overwriting large boilerplate files where you want to replace the entire content at once.
 - When the complexity or number of changes would make replace_in_file unwieldy or error-prone.
 - When you need to completely restructure a file's content or change its fundamental organization.
 
 ## Important Considerations
 
-- Using write_to_file requires providing the file’s complete final content.  
+- Using write_to_file requires providing the file’s complete final content.
 - If you only need to make small changes to an existing file, consider using replace_in_file instead to avoid unnecessarily rewriting the entire file.
 - While write_to_file should not be your default choice, don't hesitate to use it when the situation truly calls for it.
 
@@ -778,7 +779,7 @@ You have access to two tools for working with files: **write_to_file** and **rep
 
 ## Advantages
 
-- More efficient for minor edits, since you don’t need to supply the entire file content.  
+- More efficient for minor edits, since you don’t need to supply the entire file content.
 - Reduces the chance of errors that can occur when overwriting large files.
 
 # Choosing the Appropriate Tool
@@ -815,7 +816,7 @@ You have access to two tools for working with files: **write_to_file** and **rep
 By thoughtfully selecting between write_to_file and replace_in_file, you can make your file editing process smoother, safer, and more efficient.
 
 ====
- 
+
 CAPABILITIES
 
 - You have access to tools that let you execute CLI commands on the user's computer, list files, view source code definitions, regex search${
@@ -876,6 +877,35 @@ Operating System: ${osName()}
 Default Shell: ${defaultShell}
 Home Directory: ${os.homedir().toPosix()}
 Current Working Directory: ${cwd.toPosix()}
+${await (async () => {
+	const envInfo = await getEnvironmentInfo()
+	const parts = []
+
+	if (envInfo.python) {
+		parts.push(`Python Environment: ${envInfo.python}`)
+	}
+
+	if (envInfo.javascript) {
+		const js = envInfo.javascript
+		if (js.nodeVersion) {
+			parts.push(`Node.js Version: ${js.nodeVersion}`)
+		}
+		if (js.typescript) {
+			parts.push(`TypeScript Version: ${js.typescript.version}`)
+		}
+		if (js.packageManagers && js.packageManagers.length > 0) {
+			parts.push("Package Managers:")
+			js.packageManagers.forEach(pm => {
+				parts.push(`  ${pm.name} ${pm.version}`)
+				if (pm.globalPackages.length > 0) {
+					parts.push(`    Global packages: ${pm.globalPackages.join(", ")}`)
+				}
+			})
+		}
+	}
+
+	return parts.length > 0 ? "\n" + parts.join("\n") : ""
+})()}
 
 ====
 
