@@ -1,6 +1,7 @@
 import { VSCodeBadge, VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react"
 import deepEqual from "fast-deep-equal"
 import React, { memo, useEffect, useMemo, useRef } from "react"
+import AnimatedMarkdownBlock from "../common/AnimatedMarkdownBlock"
 import { useSize } from "react-use"
 import {
 	ClineApiReqInfo,
@@ -14,7 +15,6 @@ import { findMatchingResourceOrTemplate } from "../../utils/mcp"
 import { vscode } from "../../utils/vscode"
 import CodeAccordian, { removeLeadingNonAlphanumeric } from "../common/CodeAccordian"
 import CodeBlock, { CODE_BLOCK_BG_COLOR } from "../common/CodeBlock"
-import MarkdownBlock from "../common/MarkdownBlock"
 import Thumbnails from "../common/Thumbnails"
 import McpResourceRow from "../mcp/McpResourceRow"
 import McpToolRow from "../mcp/McpToolRow"
@@ -985,10 +985,11 @@ export const ProgressIndicator = () => (
 	</div>
 )
 
-const Markdown = memo(({ markdown }: { markdown?: string }) => {
+const Markdown = memo(({ markdown, message }: { markdown?: string, message?: ClineMessage }) => {
+	const isPartial = message?.partial ?? false;
 	return (
 		<div style={{ wordBreak: "break-word", overflowWrap: "anywhere", marginBottom: -15, marginTop: -15 }}>
-			<MarkdownBlock markdown={markdown} />
+			<AnimatedMarkdownBlock markdown={markdown} isPartial={isPartial} />
 		</div>
 	)
 })

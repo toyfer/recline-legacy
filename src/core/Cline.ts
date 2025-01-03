@@ -55,6 +55,7 @@ import { showSystemNotification } from "../integrations/notifications"
 import { removeInvalidChars } from "../utils/string"
 import { fixModelHtmlEscaping } from "../utils/string"
 import { OpenAiHandler } from "../api/providers/openai"
+import { showOmissionWarning } from "../integrations/editor/detect-omission"
 
 const cwd =
 	vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0) ?? path.join(os.homedir(), "Desktop") // may or may not exist but fs checking existence would immediately ask for permission which would be bad UX, need to come up with a better solution
@@ -1264,7 +1265,7 @@ export class Cline {
 								await this.diffViewProvider.update(newContent, true)
 								await delay(300) // wait for diff view to update
 								this.diffViewProvider.scrollToFirstDiff()
-								// showOmissionWarning(this.diffViewProvider.originalContent || "", newContent)
+								showOmissionWarning(this.diffViewProvider.originalContent || "", newContent)
 
 								const completeMessage = JSON.stringify({
 									...sharedMessageProps,
