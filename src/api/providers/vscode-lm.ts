@@ -167,7 +167,7 @@ export class VsCodeLmHandler implements ApiHandler {
     private async selectBestModel(selector: vscode.LanguageModelChatSelector): Promise<vscode.LanguageModelChat> {
 
         const models: vscode.LanguageModelChat[] = await vscode.lm.selectChatModels(selector);
-        
+
         if (models.length === 0) {
 
             throw new Error(`${ERROR_PREFIX} No models found matching the specified selector.`);
@@ -175,9 +175,9 @@ export class VsCodeLmHandler implements ApiHandler {
 
         return models.reduce(
             (
-                (best, current) => 
+                (best, current) =>
                     current.maxInputTokens > best.maxInputTokens ? current : best
-            ), 
+            ),
             models[0]
         );
     }
@@ -205,23 +205,30 @@ export class VsCodeLmHandler implements ApiHandler {
     }
 
     private async *processStreamChunks(response: vscode.LanguageModelChatResponse, contentBuilder: string[]): ApiStream {
-
-        for await (const chunk of response.stream) {
-
-            if (this.currentRequestCancellation?.token.isCancellationRequested) {
-
-                throw new vscode.CancellationError();
+        try {
+            const stream = response.stream;
+            for await (const chunk of stream) {
+                if (this.currentRequestCancellation?.token.isCancellationRequested) {
+                    break;
+                }
+    
+                if (chunk instanceof vscode.LanguageModelTextPart && chunk.value) {
+                    contentBuilder.push(chunk.value);
+                    yield {
+                        type: "text" as const,
+                        text: chunk.value
+                    };
+                }
             }
-
-            if (chunk instanceof vscode.LanguageModelTextPart) {
-
-                contentBuilder.push(chunk.value);
-
-                yield {
-                    type: "text" as const,
-                    text: chunk.value
-                };
+        } 
+        catch (error) {
+            if (error instanceof vscode.CancellationError) {
+                throw new Error(`${ERROR_PREFIX}: Request cancelled by user`);
             }
+            throw error;
+        }
+        finally {
+            this.releaseCurrentCancellation();
         }
     }
 
@@ -289,7 +296,7 @@ export class VsCodeLmHandler implements ApiHandler {
         try {
 
             this.releaseCurrentCancellation();
-            
+
             const client: vscode.LanguageModelChat = await this.getClient();
             const model = await this.getModel();
             this.currentRequestCancellation = new vscode.CancellationTokenSource();
@@ -301,41 +308,39 @@ export class VsCodeLmHandler implements ApiHandler {
             ];
 
             const contentBuilder: string[] = [];
+            const response: vscode.LanguageModelChatResponse = await client.sendRequest(
+                vsCodeLmMessages,
+                {
+                    justification: `${client.name} from ${client.vendor} will be used by Cline.\n\nClick 'Allow' to proceed.`
+                },
+                this.currentRequestCancellation.token
+            );
+
             try {
-
-                const response: vscode.LanguageModelChatResponse = await client.sendRequest(
-                    vsCodeLmMessages,
-                    {
-                        justification: `${client.name} from ${client.vendor} will be used by Cline.\n\nClick 'Allow' to proceed.`
-                    },
-                    this.currentRequestCancellation.token
-                );
-
+                // Process stream chunks with proper error handling
                 const streamGenerator: ApiStream = await this.processStreamChunks(response, contentBuilder);
-                for await (const chunk of streamGenerator) {
 
+                for await (const chunk of streamGenerator) {
                     yield chunk;
                 }
 
-                const outputTokens: number = await this.countTokens(contentBuilder.join(''));
+                // Only calculate and yield usage if stream completed successfully
+                if (!this.currentRequestCancellation?.token.isCancellationRequested) {
+                    const outputTokens: number = await this.countTokens(contentBuilder.join(''));
 
-                yield {
-                    type: "usage",
-                    inputTokens: totalInputTokens,
-                    outputTokens,
-                    totalCost: calculateApiCost(
-                        model.info,
-                        totalInputTokens,
-                        outputTokens
-                    )
-                };
-            }
-            catch (error) {
-
-                if (error instanceof vscode.CancellationError) {
-                    throw new Error(`${ERROR_PREFIX}: Request cancelled by user`);
+                    yield {
+                        type: "usage",
+                        inputTokens: totalInputTokens,
+                        outputTokens,
+                        totalCost: calculateApiCost(
+                            model.info,
+                            totalInputTokens,
+                            outputTokens
+                        )
+                    };
                 }
-
+            } catch (error) {
+                // Do not release resources here as processStreamChunks handles cleanup
                 throw error;
             }
         }
@@ -356,8 +361,8 @@ export class VsCodeLmHandler implements ApiHandler {
         return {
             id: stringifyVsCodeLmModelSelector(client),
             info: {
-                maxTokens: 4096, //Ideally would like to support 8192, but copilot seems to have a limit of 4096.
-                contextWindow: Math.max(0, client.maxInputTokens),
+                maxTokens: client.maxInputTokens, // VSCode Language Model API does not provide output token limit. Going with the context window size.
+                contextWindow: client.maxInputTokens,
                 supportsImages: false,
                 supportsPromptCache: false,
                 inputPrice: 0,

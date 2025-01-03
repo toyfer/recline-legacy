@@ -208,13 +208,24 @@ function blockAnchorFallbackMatch(
  * - If the search block cannot be matched using any of the available matching strategies,
  *   an error is thrown.
  */
+interface DiffState {
+    lastProcessedIndex: number;
+    processedBlocks: number;
+}
+
+const diffStates = new Map<string, DiffState>();
+
 export async function constructNewFileContent(
 	diffContent: string,
 	originalContent: string,
 	isFinal: boolean,
+	diffId?: string,
 ): Promise<string> {
+	// Initialize or retrieve state for this diff operation
+	const state = diffId ? (diffStates.get(diffId) || { lastProcessedIndex: 0, processedBlocks: 0 }) : { lastProcessedIndex: 0, processedBlocks: 0 };
 	let result = ""
-	let lastProcessedIndex = 0
+	let lastProcessedIndex = state.lastProcessedIndex
+	let processedBlocks = state.processedBlocks
 
 	let currentSearchContent = ""
 	let currentReplaceContent = ""
@@ -328,6 +339,7 @@ export async function constructNewFileContent(
 
 			// Advance lastProcessedIndex to after the matched section
 			lastProcessedIndex = searchEndIndex
+			processedBlocks++
 
 			// Reset for next block
 			inSearch = false
@@ -336,6 +348,14 @@ export async function constructNewFileContent(
 			currentReplaceContent = ""
 			searchMatchIndex = -1
 			searchEndIndex = -1
+
+			// Early return if we've already fully processed this diff session
+			if (diffId && state.processedBlocks === processedBlocks) {
+				// If all blocks already processed, skip further searching
+				result += originalContent.slice(lastProcessedIndex)
+				return result
+			}
+
 			continue
 		}
 
@@ -355,8 +375,20 @@ export async function constructNewFileContent(
 	}
 
 	// If this is the final chunk, append any remaining original content
-	if (isFinal && lastProcessedIndex < originalContent.length) {
-		result += originalContent.slice(lastProcessedIndex)
+	if (isFinal) {
+		if (lastProcessedIndex < originalContent.length) {
+			result += originalContent.slice(lastProcessedIndex)
+		}
+		// Clean up state when done
+		if (diffId) {
+			diffStates.delete(diffId)
+		}
+	} else if (diffId) {
+		// Update state for next chunk
+		diffStates.set(diffId, {
+			lastProcessedIndex,
+			processedBlocks
+		})
 	}
 
 	return result

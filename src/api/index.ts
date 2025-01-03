@@ -1,5 +1,4 @@
-import { Anthropic } from "@anthropic-ai/sdk"
-import { ApiConfiguration, ModelInfo } from "../shared/api"
+import { ApiConfiguration, MessageParamWithTokenCount, ModelInfo } from "../shared/api"
 import { AnthropicHandler } from "./providers/anthropic"
 import { AwsBedrockHandler } from "./providers/bedrock"
 import { OpenRouterHandler } from "./providers/openrouter"
@@ -14,7 +13,7 @@ import { ApiStream } from "./transform/stream"
 import { DeepSeekHandler } from "./providers/deepseek"
 
 export interface ApiHandler {
-	createMessage(systemPrompt: string, messages: Anthropic.Messages.MessageParam[]): ApiStream
+	createMessage(systemPrompt: string, messages: MessageParamWithTokenCount[]): ApiStream
 	getModel(): Promise<{ id: string; info: ModelInfo }>
 }
 
