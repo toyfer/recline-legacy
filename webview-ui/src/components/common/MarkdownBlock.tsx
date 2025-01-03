@@ -190,11 +190,7 @@ const MarkdownBlock = memo(({ markdown }: MarkdownBlockProps) => {
 		setMarkdown(markdown || "")
 	}, [markdown, setMarkdown, theme])
 
-	return (
-		<div style={{}}>
-			<StyledMarkdown>{reactContent}</StyledMarkdown>
-		</div>
-	)
+	return <StyledMarkdown>{reactContent}</StyledMarkdown>
 })
 
 export default MarkdownBlock

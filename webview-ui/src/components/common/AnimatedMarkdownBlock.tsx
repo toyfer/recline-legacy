@@ -4,23 +4,27 @@ import MarkdownBlock from './MarkdownBlock';
 
 const AnimatedContainer = styled.div<{ isPartial: boolean }>`
   .markdown-line {
+    position: relative;
     opacity: 0;
-    transform: translateY(10px);
-    animation: revealText 0.3s ease forwards;
+    transform: translate(-4px, 2px);
+    animation: revealText 0.25s cubic-bezier(0.2, 0.6, 0.35, 1) forwards;
+  }
+
+  .markdown-line:not(:first-child) {
+    margin-top: 3px;
   }
 
   @keyframes revealText {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translate(-4px, 2px);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translate(0, 0);
     }
   }
 
-  /* Add a subtle typing cursor effect when streaming */
   ${props => props.isPartial && `
     &::after {
       content: '▋';
@@ -75,14 +79,20 @@ const AnimatedMarkdownBlock: React.FC<AnimatedMarkdownBlockProps> = ({ markdown,
     }
   }, [markdown]);
 
+  // Use a timestamp-based key to force re-render on content updates
+  const [renderKey, setRenderKey] = useState(Date.now());
+  useEffect(() => {
+    setRenderKey(Date.now());
+  }, [markdown]);
+
   return (
     <AnimatedContainer isPartial={isPartial}>
       {lines.map((line, index) => (
         <div
-          key={index}
+          key={`${renderKey}-${index}`}
           className="markdown-line"
           style={{
-            animationDelay: `${index * 50}ms`,
+            animationDelay: `${Math.min(index * 25, 200)}ms`,
             whiteSpace: 'pre-wrap'
           }}>
           <MarkdownBlock markdown={line} />

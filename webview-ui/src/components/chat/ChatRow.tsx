@@ -988,7 +988,7 @@ export const ProgressIndicator = () => (
 const Markdown = memo(({ markdown, message }: { markdown?: string, message?: ClineMessage }) => {
 	const isPartial = message?.partial ?? false;
 	return (
-		<div style={{ wordBreak: "break-word", overflowWrap: "anywhere", marginBottom: -15, marginTop: -15 }}>
+		<div style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
 			<AnimatedMarkdownBlock markdown={markdown} isPartial={isPartial} />
 		</div>
 	)
