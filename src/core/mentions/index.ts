@@ -6,7 +6,7 @@ import { mentionRegexGlobal } from "../../shared/context-mentions"
 import fs from "fs/promises"
 import { extractTextFromFile } from "../../integrations/misc/extract-text"
 import { isBinaryFile } from "isbinaryfile"
-import { diagnosticsToProblemsString } from "../../integrations/diagnostics"
+import diagnosticsMonitor from "../../integrations/diagnostics"
 
 export function openMention(mention?: string): void {
 	if (!mention) {
@@ -171,7 +171,7 @@ async function getFileOrFolderContent(mentionPath: string, cwd: string): Promise
 
 function getWorkspaceProblems(cwd: string): string {
 	const diagnostics = vscode.languages.getDiagnostics()
-	const result = diagnosticsToProblemsString(
+	const result = diagnosticsMonitor.formatDiagnostics(
 		diagnostics,
 		[vscode.DiagnosticSeverity.Error, vscode.DiagnosticSeverity.Warning],
 		cwd,

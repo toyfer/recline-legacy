@@ -172,4 +172,6 @@ export class DiagnosticsMonitor {
 	}
 }
 
-export default DiagnosticsMonitor;
+// Create a singleton instance and export it
+const diagnosticsMonitor = new DiagnosticsMonitor();
+export default diagnosticsMonitor;

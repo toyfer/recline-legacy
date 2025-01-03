@@ -6,7 +6,7 @@ import { arePathsEqual } from "../../utils/path"
 import { formatResponse } from "../../core/prompts/responses"
 import { DecorationController } from "./DecorationController"
 import * as diff from "diff"
-import { diagnosticsToProblemsString, getNewDiagnostics } from "../diagnostics"
+import diagnosticsMonitor from "../diagnostics"
 
 export const DIFF_VIEW_URI_SCHEME = "cline-diff"
 
@@ -204,8 +204,8 @@ export class DiffViewProvider {
 		initial fix is usually correct and it may just take time for linters to catch up.
 		*/
 		const postDiagnostics = vscode.languages.getDiagnostics()
-		const newProblems = diagnosticsToProblemsString(
-			getNewDiagnostics(this.preDiagnostics, postDiagnostics),
+		const newProblems = diagnosticsMonitor.formatDiagnostics(
+			diagnosticsMonitor.getNewDiagnostics(this.preDiagnostics, postDiagnostics),
 			[
 				vscode.DiagnosticSeverity.Error, // only including errors since warnings can be distracting (if user wants to fix warnings they can use the @problems mention)
 			],
