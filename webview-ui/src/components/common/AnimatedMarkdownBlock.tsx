@@ -51,7 +51,6 @@ const AnimatedContainer = styled.div<{ isPartial: boolean }>`
       content: '▋';
       display: inline-block;
       vertical-align: middle;
-      animation: blink 1s step-start infinite;
       opacity: 0.7;
       margin-left: 2px;
       transform-origin: center;
@@ -131,7 +130,8 @@ const StyledMarkdown = styled.div`
   li,
   ol,
   ul {
-    line-height: 1.25;
+    line-height: 1.1;
+    margin: 0;
   }
 
   ol,
@@ -142,6 +142,7 @@ const StyledMarkdown = styled.div`
 
   p {
     white-space: pre-wrap;
+    margin: 0;
   }
 
   a {
@@ -149,6 +150,12 @@ const StyledMarkdown = styled.div`
     &:hover {
       text-decoration: underline;
     }
+  }
+
+  /* Remove default margins between elements */
+  * {
+    margin-top: 0;
+    margin-bottom: 0;
   }
 `;
 
