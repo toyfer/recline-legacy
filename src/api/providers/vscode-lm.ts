@@ -356,7 +356,7 @@ export class VsCodeLmHandler implements ApiHandler {
         return {
             id: stringifyVsCodeLmModelSelector(client),
             info: {
-                maxTokens: -1,
+                maxTokens: 4096, //Ideally would like to support 8192, but copilot seems to have a limit of 4096.
                 contextWindow: Math.max(0, client.maxInputTokens),
                 supportsImages: false,
                 supportsPromptCache: false,
