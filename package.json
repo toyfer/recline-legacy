@@ -1,202 +1,235 @@
 {
-	"name": "claude-dev",
-	"displayName": "Cline (prev. Claude Dev)",
-	"description": "Autonomous coding agent right in your IDE, capable of creating/editing files, running commands, using the browser, and more with your permission every step of the way.",
-	"version": "6.2.15",
-	"icon": "assets/icons/icon.png",
-	"galleryBanner": {
-		"color": "#617A91",
-		"theme": "dark"
-	},
-	"engines": {
-		"vscode": "^1.84.0"
-	},
-	"author": {
-		"name": "Cline Bot Inc."
-	},
-	"license": "Apache-2.0",
-	"publisher": "saoudrizwan",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/cline/cline"
-	},
-	"homepage": "https://cline.bot",
-	"categories": [
-		"AI",
-		"Chat",
-		"Programming Languages",
-		"Education",
-		"Snippets",
-		"Testing"
-	],
-	"keywords": [
-		"cline",
-		"claude",
-		"dev",
-		"mcp",
-		"openrouter",
-		"coding",
-		"agent",
-		"autonomous",
-		"chatgpt",
-		"sonnet",
-		"ai",
-		"llama"
-	],
-	"activationEvents": [],
-	"main": "./dist/extension.js",
-	"contributes": {
-		"viewsContainers": {
-			"activitybar": [
-				{
-					"id": "claude-dev-ActivityBar",
-					"title": "Cline",
-					"icon": "$(robot)"
-				}
-			]
-		},
-		"views": {
-			"claude-dev-ActivityBar": [
-				{
-					"type": "webview",
-					"id": "claude-dev.SidebarProvider",
-					"name": ""
-				}
-			]
-		},
-		"commands": [
-			{
-				"command": "cline.plusButtonClicked",
-				"title": "New Task",
-				"icon": "$(add)"
-			},
-			{
-				"command": "cline.mcpButtonClicked",
-				"title": "MCP Servers",
-				"icon": "$(server)"
-			},
-			{
-				"command": "cline.historyButtonClicked",
-				"title": "History",
-				"icon": "$(history)"
-			},
-			{
-				"command": "cline.popoutButtonClicked",
-				"title": "Open in Editor",
-				"icon": "$(link-external)"
-			},
-			{
-				"command": "cline.settingsButtonClicked",
-				"title": "Settings",
-				"icon": "$(settings-gear)"
-			},
-			{
-				"command": "cline.openInNewTab",
-				"title": "Open In New Tab",
-				"category": "Cline"
-			}
-		],
-		"menus": {
-			"view/title": [
-				{
-					"command": "cline.plusButtonClicked",
-					"group": "navigation@1",
-					"when": "view == claude-dev.SidebarProvider"
-				},
-				{
-					"command": "cline.mcpButtonClicked",
-					"group": "navigation@2",
-					"when": "view == claude-dev.SidebarProvider"
-				},
-				{
-					"command": "cline.historyButtonClicked",
-					"group": "navigation@3",
-					"when": "view == claude-dev.SidebarProvider"
-				},
-				{
-					"command": "cline.popoutButtonClicked",
-					"group": "navigation@4",
-					"when": "view == claude-dev.SidebarProvider"
-				},
-				{
-					"command": "cline.settingsButtonClicked",
-					"group": "navigation@5",
-					"when": "view == claude-dev.SidebarProvider"
-				}
-			]
-		}
-	},
-	"scripts": {
-		"vscode:prepublish": "npm run package",
-		"compile": "npm run check-types && npm run lint && node esbuild.js",
-		"watch": "npm-run-all -p watch:*",
-		"watch:esbuild": "node esbuild.js --watch",
-		"watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-		"package": "npm run build:webview && npm run check-types && npm run lint && node esbuild.js --production",
-		"compile-tests": "tsc -p ./tsconfig.test.json --outDir out",
-		"watch-tests": "tsc -p . -w --outDir out",
-		"pretest": "npm run compile-tests && npm run compile && npm run lint",
-		"check-types": "tsc --noEmit",
-		"lint": "eslint src --ext ts",
-		"format": "prettier . --check",
-		"format:fix": "prettier . --write",
-		"test": "vscode-test",
-		"install:all": "npm install && cd webview-ui && npm install",
-		"start:webview": "cd webview-ui && npm run start",
-		"build:webview": "cd webview-ui && npm run build",
-		"test:webview": "cd webview-ui && npm run test",
-		"publish:marketplace": "vsce publish && ovsx publish"
-	},
-	"devDependencies": {
-		"@types/diff": "^5.2.1",
-		"@types/mocha": "^10.0.7",
-		"@types/node": "20.x",
-		"@types/should": "^11.2.0",
-		"@types/vscode": "^1.84.0",
-		"@typescript-eslint/eslint-plugin": "^7.14.1",
-		"@typescript-eslint/parser": "^7.11.0",
-		"@vscode/test-cli": "^0.0.9",
-		"@vscode/test-electron": "^2.4.0",
-		"esbuild": "^0.21.5",
-		"eslint": "^8.57.0",
-		"npm-run-all": "^4.1.5",
-		"prettier": "^3.3.3",
-		"should": "^13.2.3",
-		"typescript": "^5.4.5"
-	},
-	"dependencies": {
-		"@anthropic-ai/bedrock-sdk": "^0.10.2",
-		"@anthropic-ai/sdk": "^0.26.0",
-		"@anthropic-ai/vertex-sdk": "^0.4.1",
-		"@google/generative-ai": "^0.18.0",
-		"@modelcontextprotocol/sdk": "^1.0.1",
-		"@types/clone-deep": "^4.0.4",
-		"@types/pdf-parse": "^1.1.4",
-		"@types/turndown": "^5.0.5",
-		"@vscode/codicons": "^0.0.36",
-		"axios": "^1.7.4",
-		"cheerio": "^1.0.0",
-		"chokidar": "^4.0.1",
-		"clone-deep": "^4.0.1",
-		"default-shell": "^2.2.0",
-		"delay": "^6.0.0",
-		"diff": "^5.2.0",
-		"fast-deep-equal": "^3.1.3",
-		"globby": "^14.0.2",
-		"isbinaryfile": "^5.0.2",
-		"mammoth": "^1.8.0",
-		"monaco-vscode-textmate-theme-converter": "^0.1.7",
-		"openai": "^4.61.0",
-		"os-name": "^6.0.0",
-		"p-wait-for": "^5.0.2",
-		"pdf-parse": "^1.1.1",
-		"puppeteer-chromium-resolver": "^23.0.0",
-		"puppeteer-core": "^23.4.0",
-		"serialize-error": "^11.0.3",
-		"strip-ansi": "^7.1.0",
-		"tree-sitter-wasms": "^0.1.11",
-		"turndown": "^7.2.0",
-		"web-tree-sitter": "^0.22.6",
-		"zod": "^3.23.8"
-	}
+  "publisher": "julesmons",
+  "name": "recline",
+  "displayName": "Recline",
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.2",
+  "description": "Recline: The autonomous AI assistant that seamlessly integrates with your CLI and editor to create, edit, and run; redefining how you code.",
+  "author": {
+    "name": "Jules Mons",
+    "email": "jules@jupdev.nl",
+    "url": "https://www.jupdev.nl/"
+  },
+  "contributors": [
+    {
+      "name": "Cline Bot Inc.",
+      "url": "https://cline.bot/"
+    },
+    {
+      "name": "Saoud Rizwan",
+      "url": "https://github.com/saoudrizwan/"
+    }
+  ],
+  "license": "MPL-2.0",
+  "funding": "https://github.com/sponsors/julesmons",
+  "homepage": "https://github.com/julesmons/recline#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/julesmons/recline.git"
+  },
+  "bugs": "https://github.com/julesmons/recline/issues",
+  "keywords": [
+    "AI",
+    "recline",
+    "cline",
+    "in-IDE",
+    "developer tools",
+    "dev",
+    "mcp",
+    "openrouter",
+    "coding",
+    "agent",
+    "autonomous",
+    "chatgpt",
+    "sonnet",
+    "ai",
+    "llama"
+  ],
+  "categories": [
+    "Other"
+  ],
+  "main": "dist/extension.js",
+  "icon": "assets/icons/recline.png",
+  "galleryBanner": {
+    "color": "#3B82F6",
+    "theme": "dark"
+  },
+  "files": [
+    "CLINE.LICENSE.md",
+    "LICENSE.md",
+    "assets",
+    "dist"
+  ],
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "activationEvents": [],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "recline-ActivityBar",
+          "title": "Recline",
+          "icon": "$(recline)"
+        }
+      ]
+    },
+    "views": {
+      "recline-ActivityBar": [
+        {
+          "type": "webview",
+          "id": "recline.SidebarProvider",
+          "name": ""
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "recline.plusButtonClicked",
+        "title": "New Task",
+        "icon": "$(add)"
+      },
+      {
+        "command": "recline.mcpButtonClicked",
+        "title": "MCP Servers",
+        "icon": "$(server)"
+      },
+      {
+        "command": "recline.historyButtonClicked",
+        "title": "History",
+        "icon": "$(history)"
+      },
+      {
+        "command": "recline.popoutButtonClicked",
+        "title": "Open in Editor",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "recline.settingsButtonClicked",
+        "title": "Settings",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "recline.openInNewTab",
+        "title": "Open In New Tab",
+        "category": "Recline"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "recline.plusButtonClicked",
+          "group": "navigation@1",
+          "when": "view == recline.SidebarProvider"
+        },
+        {
+          "command": "recline.mcpButtonClicked",
+          "group": "navigation@2",
+          "when": "view == recline.SidebarProvider"
+        },
+        {
+          "command": "recline.historyButtonClicked",
+          "group": "navigation@3",
+          "when": "view == recline.SidebarProvider"
+        },
+        {
+          "command": "recline.popoutButtonClicked",
+          "group": "navigation@4",
+          "when": "view == recline.SidebarProvider"
+        },
+        {
+          "command": "recline.settingsButtonClicked",
+          "group": "navigation@5",
+          "when": "view == recline.SidebarProvider"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "rsbuild build",
+    "dev": "rsbuild build --watch",
+    "lint": "eslint . --cache",
+    "lint:fix": "eslint . --fix --cache",
+    "package": "vsce package --no-dependencies",
+    "vscode:prepublish": "pnpm build",
+    "test": "pnpm typecheck && vitest && vscode-test",
+    "test:unit": "vitest",
+    "test:e2e": "vscode-test",
+    "typecheck": "tsc --noEmit",
+    "prepare": "simple-git-hooks"
+  },
+  "dependencies": {
+    "@anthropic-ai/bedrock-sdk": "^0.12.0",
+    "@anthropic-ai/sdk": "^0.33.1",
+    "@anthropic-ai/vertex-sdk": "^0.6.1",
+    "@google/generative-ai": "^0.21.0",
+    "@modelcontextprotocol/sdk": "^1.1.0",
+    "@reexport/fd-prebuilt": "^1.2.1",
+    "@vscode/codicons": "^0.0.36",
+    "@vscode/ripgrep": "^1.15.9",
+    "@vscode/webview-ui-toolkit": "^1.4.0",
+    "axios": "^1.7.9",
+    "debounce": "^2.2.0",
+    "default-shell": "^2.2.0",
+    "delay": "^6.0.0",
+    "diff": "^7.0.0",
+    "es-toolkit": "^1.31.0",
+    "fuse.js": "^7.0.0",
+    "isbinaryfile": "^5.0.4",
+    "mammoth": "^1.9.0",
+    "monaco-vscode-textmate-theme-converter": "^0.1.7",
+    "openai": "^4.77.3",
+    "os-name": "^6.0.0",
+    "p-wait-for": "^5.0.2",
+    "pdf-parse": "^1.1.1",
+    "preact": "^10.25.4",
+    "puppeteer-chromium-resolver": "^23.0.0",
+    "puppeteer-core": "^23.11.1",
+    "react-remark": "^2.1.0",
+    "react-textarea-autosize": "^8.5.6",
+    "react-use": "^17.6.0",
+    "react-virtuoso": "^4.12.3",
+    "rehype-highlight": "^7.0.1",
+    "rehype-parse": "^9.0.1",
+    "rehype-remark": "^10.0.0",
+    "remark-stringify": "^11.0.0",
+    "sanitize-html": "^2.14.0",
+    "serialize-error": "^11.0.3",
+    "strip-ansi": "^7.1.0",
+    "styled-components": "^6.1.14",
+    "tree-sitter-wasms": "^0.1.12",
+    "undici": "^7.2.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.0.0",
+    "web-tree-sitter": "^0.24.6",
+    "web-vitals": "^4.2.4",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^3.12.1",
+    "@rsbuild/core": "^1.1.13",
+    "@rsbuild/plugin-preact": "^1.2.0",
+    "@types/diff": "^6.0.0",
+    "@types/node": "^22.10.5",
+    "@types/pdf-parse": "^1.1.4",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@types/sanitize-html": "^2.13.0",
+    "@types/vscode": "^1.91.0",
+    "@types/vscode-webview": "^1.57.5",
+    "@vscode/vsce": "^3.2.1",
+    "bumpp": "^9.9.2",
+    "eslint": "^9.17.0",
+    "eslint-plugin-format": "^0.1.3",
+    "lint-staged": "^15.3.0",
+    "simple-git-hooks": "^2.11.1",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint-staged"
+  },
+  "lint-staged": {
+    "*": "eslint --fix"
+  }
 }

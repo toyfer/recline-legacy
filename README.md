@@ -1,52 +1,42 @@
-# Cline (prev. Claude Dev) – \#1 on OpenRouter
-
-<p align="center">
-  <img src="https://media.githubusercontent.com/media/cline/cline/main/assets/docs/demo.gif" width="100%" />
-</p>
+# Recline (fork of Cline)
 
 <div align="center">
 <table>
 <tbody>
 <td align="center">
-<a href="https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev" target="_blank"><strong>Download on VS Marketplace</strong></a>
+<a href="https://marketplace.visualstudio.com/items?itemName=julesmons.recline" target="_blank"><strong>Download on VS Marketplace</strong></a>
 </td>
 <td align="center">
-<a href="https://discord.gg/cline" target="_blank"><strong>Join the Discord</strong></a>
-</td>
-<td align="center">
-<a href="https://github.com/cline/cline/discussions/categories/feature-requests?discussions_q=is%3Aopen+category%3A%22Feature+Requests%22+sort%3Atop" target="_blank"><strong>Feature Requests</strong></a>
-</td>
-<td align="center">
-<a href="https://cline.bot/join-us" target="_blank"><strong>We're Hiring!</strong></a>
+<a href="https://github.com/julesmons/recline" target="_blank"><strong>Fork on GitHub</strong></a>
 </td>
 </tbody>
 </table>
 </div>
 
-Meet Cline, an AI assistant that can use your **CLI** a**N**d **E**ditor.
+Recline: The autonomous AI assistant that seamlessly integrates with your CLI and editor to create, edit, and run; redefining how you code.
 
-Thanks to [Claude 3.5 Sonnet's agentic coding capabilities](https://www-cdn.anthropic.com/fed9cc193a14b84131812372d8d5857f8f304c52/Model_Card_Claude_3_Addendum.pdf), Cline can handle complex software development tasks step-by-step. With tools that let him create & edit files, explore large projects, use the browser, and execute terminal commands (after you grant permission), he can assist you in ways that go beyond code completion or tech support. Cline can even use the Model Context Protocol (MCP) to create new tools and extend his own capabilities. While autonomous AI scripts traditionally run in sandboxed environments, this extension provides a human-in-the-loop GUI to approve every file change and terminal command, providing a safe and accessible way to explore the potential of agentic AI.
+Powered by [Claude 3.5 Sonnet's advanced agentic capabilities](https://www-cdn.anthropic.com/fed9cc193a14b84131812372d8d5857f8f304c52/Model_Card_Claude_3_Addendum.pdf), Recline excels at tackling intricate software development challenges with methodical precision. Through its comprehensive toolkit, Recline can create and modify files, navigate complex projects, interact with web browsers, and execute terminal commands—all with your explicit approval. The integration of the Model Context Protocol (MCP) even enables Recline to expand its own capabilities through custom tools. While traditional autonomous AI systems operate in isolated environments, Recline's human-in-the-loop interface ensures safety and transparency by requiring your approval for every file modification and terminal operation.
 
-1. Enter your task and add images to convert mockups into functional apps or fix bugs with screenshots.
-2. Cline starts by analyzing your file structure & source code ASTs, running regex searches, and reading relevant files to get up to speed in existing projects. By carefully managing what information is added to context, Cline can provide valuable assistance even for large, complex projects without overwhelming the context window.
-3. Once Cline has the information he needs, he can:
-    - Create and edit files + monitor linter/compiler errors along the way, letting him proactively fix issues like missing imports and syntax errors on his own.
-    - Execute commands directly in your terminal and monitor their output as he works, letting him e.g., react to dev server issues after editing a file.
-    - For web development tasks, Cline can launch the site in a headless browser, click, type, scroll, and capture screenshots + console logs, allowing him to fix runtime errors and visual bugs.
-4. When a task is completed, Cline will present the result to you with a terminal command like `open -a "Google Chrome" index.html`, which you run with a click of a button.
+1. Simply describe your task and attach relevant images—whether you're converting mockups into functional applications or debugging with screenshots.
+2. Recline begins by conducting a thorough analysis of your project structure, examining source code ASTs, performing targeted searches, and reviewing pertinent files. This strategic approach to context management allows Recline to provide valuable assistance even in large, sophisticated projects without overwhelming its context window.
+3. Once equipped with the necessary insights, Recline can:
+    - Craft and modify files while actively monitoring linter/compiler feedback, enabling autonomous resolution of issues like missing dependencies and syntax errors.
+    - Execute and monitor terminal commands in real-time, allowing swift responses to development server issues or other runtime complications.
+    - For web-based projects, Recline can navigate sites in a headless browser—clicking, typing, scrolling, and capturing both visual and console output to address runtime errors and visual inconsistencies.
+4. Upon task completion, Recline presents the results with a ready-to-use terminal command, such as `open -a "Google Chrome" index.html`, executable with a single click.
 
 > [!TIP]
-> Use the `CMD/CTRL + Shift + P` shortcut to open the command palette and type "Cline: Open In New Tab" to open the extension as a tab in your editor. This lets you use Cline side-by-side with your file explorer, and see how he changes your workspace more clearly.
+> Access Recline as a dedicated editor tab by using `CMD/CTRL + Shift + P` and selecting "Recline: Open In New Tab". This enables side-by-side interaction with your file explorer while maintaining clear visibility of workspace modifications.
 
 ---
 
 <img align="right" width="340" src="https://github.com/user-attachments/assets/3cf21e04-7ce9-4d22-a7b9-ba2c595e88a4">
 
-### Use any API and Model
+### Flexible Model Integration
 
-Cline supports API providers like OpenRouter, Anthropic, OpenAI, Google Gemini, AWS Bedrock, Azure, and GCP Vertex. You can also configure any OpenAI compatible API, or use a local model through LM Studio/Ollama. If you're using OpenRouter, the extension fetches their latest model list, allowing you to use the newest models as soon as they're available.
+Recline offers seamless integration with leading API providers including OpenRouter, Anthropic, OpenAI, Google Gemini, AWS Bedrock, Azure, and GCP Vertex. The platform supports any OpenAI-compatible API and accommodates local models through LM Studio/Ollama. OpenRouter users benefit from immediate access to the latest models upon release.
 
-The extension also keeps track of total tokens and API usage cost for the entire task loop and individual requests, keeping you informed of spend every step of the way.
+To maintain transparency, Recline meticulously tracks token usage and API costs throughout both the complete task cycle and individual requests, providing real-time insights into resource utilization.
 
 <!-- Transparent pixel to create line break after floating image -->
 
@@ -54,11 +44,11 @@ The extension also keeps track of total tokens and API usage cost for the entire
 
 <img align="left" width="370" src="https://github.com/user-attachments/assets/81be79a8-1fdb-4028-9129-5fe055e01e76">
 
-### Run Commands in Terminal
+### Advanced Terminal Integration
 
-Thanks to the new [shell integration updates in VSCode v1.93](https://code.visualstudio.com/updates/v1_93#_terminal-shell-integration-api), Cline can execute commands directly in your terminal and receive the output. This allows him to perform a wide range of tasks, from installing packages and running build scripts to deploying applications, managing databases, and executing tests, all while adapting to your dev environment & toolchain to get the job done right.
+Leveraging the enhanced [shell integration capabilities in VSCode v1.93](https://code.visualstudio.com/updates/v1_93#_terminal-shell-integration-api), Recline executes terminal commands with precision while capturing their output. This enables a comprehensive range of operations—from package management and build processes to application deployment, database administration, and test execution—all while adapting seamlessly to your development environment and toolchain.
 
-For long running processes like dev servers, use the "Proceed While Running" button to let Cline continue in the task while the command runs in the background. As Cline works he’ll be notified of any new terminal output along the way, letting him react to issues that may come up, such as compile-time errors when editing files.
+For ongoing processes like development servers, the "Proceed While Running" feature allows Recline to continue its tasks while monitoring background operations. This continuous awareness of terminal output enables swift responses to emerging issues, such as compilation errors during file modifications.
 
 <!-- Transparent pixel to create line break after floating image -->
 
@@ -66,11 +56,11 @@ For long running processes like dev servers, use the "Proceed While Running" but
 
 <img align="right" width="400" src="https://github.com/user-attachments/assets/c5977833-d9b8-491e-90f9-05f9cd38c588">
 
-### Create and Edit Files
+### Intelligent File Management
 
-Cline can create and edit files directly in your editor, presenting you a diff view of the changes. You can edit or revert Cline's changes directly in the diff view editor, or provide feedback in chat until you're satisfied with the result. Cline also monitors linter/compiler errors (missing imports, syntax errors, etc.) so he can fix issues that come up along the way on his own.
+Recline's file manipulation capabilities are presented through an intuitive diff view interface, allowing you to review, modify, or revert changes directly. The system actively monitors for linter and compiler feedback, enabling autonomous resolution of common issues like missing imports or syntax errors.
 
-All changes made by Cline are recorded in your file's Timeline, providing an easy way to track and revert modifications if needed.
+Every modification is chronicled in your file's Timeline, ensuring complete traceability and the ability to restore previous versions when needed.
 
 <!-- Transparent pixel to create line break after floating image -->
 
@@ -78,11 +68,11 @@ All changes made by Cline are recorded in your file's Timeline, providing an eas
 
 <img align="left" width="370" src="https://github.com/user-attachments/assets/bc2e85ba-dfeb-4fe6-9942-7cfc4703cbe5">
 
-### Use the Browser
+### Browser Integration
 
-With Claude 3.5 Sonnet's new [Computer Use](https://www.anthropic.com/news/3-5-models-and-computer-use) capability, Cline can launch a browser, click elements, type text, and scroll, capturing screenshots and console logs at each step. This allows for interactive debugging, end-to-end testing, and even general web use! This gives him autonomy to fixing visual bugs and runtime issues without you needing to handhold and copy-pasting error logs yourself.
+Claude 3.5 Sonnet's [Computer Use](https://www.anthropic.com/news/3-5-models-and-computer-use) capabilities empower Recline to operate within web browsers—interacting with elements, inputting text, and capturing both visual and console output. This enables sophisticated debugging, comprehensive testing, and general web interaction capabilities, facilitating autonomous resolution of visual and runtime issues without manual intervention.
 
-Try asking Cline to "test the app", and watch as he runs a command like `npm run dev`, launches your locally running dev server in a browser, and performs a series of tests to confirm that everything works. [See a demo here.](https://x.com/sdrzn/status/1850880547825823989)
+Experience this functionality by requesting Recline to "test the app"—watch as it launches your development server, initiates browser interaction, and conducts thorough functionality verification. [View demonstration here.](https://x.com/sdrzn/status/1850880547825823989)
 
 <!-- Transparent pixel to create line break after floating image -->
 
@@ -90,13 +80,13 @@ Try asking Cline to "test the app", and watch as he runs a command like `npm run
 
 <img align="right" width="350" src="https://github.com/user-attachments/assets/ac0efa14-5c1f-4c26-a42d-9d7c56f5fadd">
 
-### "add a tool that..."
+### Extensible Architecture
 
-Thanks to the [Model Context Protocol](https://github.com/modelcontextprotocol), Cline can extend his capabilities through custom tools. While you can use [community-made servers](https://github.com/modelcontextprotocol/servers), Cline can instead create and install tools tailored to your specific workflow. Just ask Cline to "add a tool" and he will handle everything, from creating a new MCP server to installing it into the extension. These custom tools then become part of Cline's toolkit, ready to use in future tasks.
+The [Model Context Protocol](https://github.com/modelcontextprotocol) enables Recline to extend its capabilities through custom tools. While [community-created servers](https://github.com/modelcontextprotocol/servers) are available, Recline excels at crafting tools tailored to your specific workflow. Simply request Recline to "add a tool" and it will manage the entire process—from server creation to extension integration. These custom tools become permanent additions to Recline's capabilities, ready for future use.
 
--   "add a tool that fetches Jira tickets": Retrieve ticket ACs and put Cline to work
--   "add a tool that manages AWS EC2s": Check server metrics and scale instances up or down
--   "add a tool that pulls the latest PagerDuty incidents": Fetch details and ask Cline to fix bugs
+Consider these possibilities:
+- "add a tool that fetches Jira tickets": Streamline development by directly accessing ticket requirements
+- "add a tool that manages AWS EC2s": Monitor and adjust cloud infrastructure dynamically
 
 <!-- Transparent pixel to create line break after floating image -->
 
@@ -104,39 +94,43 @@ Thanks to the [Model Context Protocol](https://github.com/modelcontextprotocol),
 
 <img align="left" width="360" src="https://github.com/user-attachments/assets/7fdf41e6-281a-4b4b-ac19-020b838b6970">
 
-### Add Context
+### Context Enhancement Features
 
-**`@url`:** Paste in a URL for the extension to fetch and convert to markdown, useful when you want to give Cline the latest docs
+**`@url`:**  Import external documentation by providing a URL - automatically converts web content to markdown format, ensuring your documentation stays current.
 
-**`@problems`:** Add workspace errors and warnings ('Problems' panel) for Cline to fix
+**`@problems`:** Seamlessly integrate workspace diagnostics from the Problems panel, enabling Recline to provide targeted solutions.
 
-**`@file`:** Adds a file's contents so you don't have to waste API requests approving read file (+ type to search files)
+**`@file`:** Efficiently incorporate file contents into your workspace context, with intelligent file search capabilities - eliminates redundant authorization prompts.
 
-**`@folder`:** Adds folder's files all at once to speed up your workflow even more
-
-## Contributing
-
-To contribute to the project, start with our [Contributing Guide](CONTRIBUTING.md) to learn the basics. You can also join our [Discord](https://discord.gg/cline) to chat with other contributors in the `#contributors` channel. If you're looking for full-time work, check out our open positions on our [careers page](https://cline.bot/join-us)!
+**`@folder`:** Optimize your workflow by importing entire directory contents simultaneously, perfect for large-scale context operations.
 
 <details>
-<summary>Local Development Instructions</summary>
+<summary>Development Environment Setup</summary>
 
-1. Clone the repository _(Requires [git-lfs](https://git-lfs.com/))_:
+1. Initialize your local repository _(Note: [git-lfs](https://git-lfs.com/) required)_:
     ```bash
-    git clone https://github.com/cline/cline.git
+    git clone https://github.com/Recline/Recline.git
     ```
-2. Open the project in VSCode:
+2. Launch the development environment:
     ```bash
-    code cline
+    code Recline
     ```
-3. Install the necessary dependencies for the extension and webview-gui:
+3. Configure dependencies for both extension and webview-gui:
     ```bash
     npm run install:all
     ```
-4. Launch by pressing `F5` (or `Run`->`Start Debugging`) to open a new VSCode window with the extension loaded. (You may need to install the [esbuild problem matchers extension](https://marketplace.visualstudio.com/items?itemName=connor4312.esbuild-problem-matchers) if you run into issues building the project.)
+4. Start the development instance: Press `F5` or navigate to `Run -> Start Debugging`. This launches a new VSCode window with your extension loaded.
+
+   Note: If build issues occur, install the [esbuild problem matchers extension](https://marketplace.visualstudio.com/items?itemName=connor4312.esbuild-problem-matchers).
 
 </details>
 
 ## License
 
-[Apache 2.0 © 2024 Cline Bot Inc.](./LICENSE)
+[Mozilla Public License Version 2.0 © 2025 Jules Mons](./LICENSE.md)
+[Apache 2.0 © 2024 Cline Bot Inc.](./CLINE.LICENSE.md)
+
+## Attribution
+
+[Cline](https://cline.bot)
+[Recliner Icon](https://thenounproject.com/creator/iconpai19/)
