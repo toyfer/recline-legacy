@@ -2,7 +2,7 @@ import type { Anthropic } from "@anthropic-ai/sdk";
 
 import type { ApiHandlerOptions, ModelInfo } from "@shared/api";
 
-import type { ApiHandler } from "../";
+import type { ModelProvider } from "../";
 import type { ApiStream } from "../transform/stream";
 
 import axios from "axios";
@@ -14,7 +14,7 @@ import { openRouterDefaultModelId, openRouterDefaultModelInfo } from "@shared/ap
 import { convertToOpenAiMessages } from "../transform/openai-format";
 
 
-export class OpenRouterHandler implements ApiHandler {
+export class OpenRouterModelProvider implements ModelProvider {
   private client: OpenAI;
   private options: ApiHandlerOptions;
 

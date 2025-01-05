@@ -2,7 +2,7 @@ import type { Anthropic } from "@anthropic-ai/sdk";
 
 import type { ApiHandlerOptions, DeepSeekModelId, ModelInfo } from "@shared/api";
 
-import type { ApiHandler } from "../";
+import type { ModelProvider } from "../";
 import type { ApiStream } from "../transform/stream";
 
 import OpenAI from "openai";
@@ -12,7 +12,7 @@ import { deepSeekDefaultModelId, deepSeekModels } from "@shared/api";
 import { convertToOpenAiMessages } from "../transform/openai-format";
 
 
-export class DeepSeekHandler implements ApiHandler {
+export class DeepSeekModelProvider implements ModelProvider {
   private client: OpenAI;
   private options: ApiHandlerOptions;
 

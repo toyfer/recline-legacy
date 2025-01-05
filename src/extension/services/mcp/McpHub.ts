@@ -29,7 +29,7 @@ import {
 
 import { arePathsEqual } from "@extension/utils/path";
 import { fileExistsAtPath } from "@extension/utils/fs";
-import { GlobalFileNames } from "@extension/core/webview/ReclineProvider";
+import { GlobalFileNames } from "@extension/constants";
 
 
 export interface McpConnection {

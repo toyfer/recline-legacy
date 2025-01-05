@@ -17,7 +17,9 @@ import pWaitFor from "p-wait-for";
 import { findLast } from "@shared/array";
 import { DEFAULT_AUTO_APPROVAL_SETTINGS } from "@shared/AutoApprovalSettings";
 
-import { Recline } from "../Recline";
+import { GlobalFileNames } from "@extension/constants";
+import { ReclineOrchestrator } from "@extension/core/ReclineOrchestrator";
+
 import { openMention } from "../mentions";
 import { buildApiHandler } from "../../api";
 import { fileExistsAtPath } from "../../utils/fs";
@@ -71,21 +73,13 @@ type GlobalStateKey =
   | "autoApprovalSettings"
   | "vsCodeLmModelSelector";
 
-export const GlobalFileNames = {
-  apiConversationHistory: "api_conversation_history.json",
-  uiMessages: "ui_messages.json",
-  openRouterModels: "openrouter_models.json",
-  mcpSettings: "recline_mcp_settings.json",
-  reclineRules: ".reclinerules"
-};
-
 export class ReclineProvider implements vscode.WebviewViewProvider {
   private static activeInstances: Set<ReclineProvider> = new Set();
   public static readonly sideBarId = "recline.SidebarProvider"; // used in package.json as the view's id. This value cannot be changed due to how vscode caches views based on their id, and updating the id would break existing instances of the extension.
   public static readonly tabPanelId = "recline.TabPanelProvider";
   private disposables: vscode.Disposable[] = [];
   private latestAnnouncementId = "jan-01-2025"; // update to some unique identifier when we add a new announcement
-  private recline?: Recline;
+  private recline?: ReclineOrchestrator;
   private view?: vscode.WebviewView | vscode.WebviewPanel;
   private workspaceTracker?: WorkspaceTracker;
   mcpHub?: McpHub;
@@ -602,20 +596,12 @@ export class ReclineProvider implements vscode.WebviewViewProvider {
       this.getGlobalState("vsCodeLmModelSelector") as Promise<vscode.LanguageModelChatSelector | undefined>
     ]);
 
-    let apiProvider: ApiProvider;
+    let apiProvider: ApiProvider = "openrouter"; // Default to openrouter
     if (storedApiProvider) {
       apiProvider = storedApiProvider;
     }
-    else {
-      // Either new user or legacy user that doesn't have the apiProvider stored in state
-      // (If they're using OpenRouter or Bedrock, then apiProvider state will exist)
-      if (apiKey) {
-        apiProvider = "anthropic";
-      }
-      else {
-        // New users should default to openrouter
-        apiProvider = "openrouter";
-      }
+    else if (apiKey) {
+      apiProvider = "anthropic";
     }
 
     return {
@@ -650,7 +636,7 @@ export class ReclineProvider implements vscode.WebviewViewProvider {
       lastShownAnnouncementId,
       customInstructions,
       taskHistory,
-      autoApprovalSettings: autoApprovalSettings || DEFAULT_AUTO_APPROVAL_SETTINGS // default value can be 0 or empty string
+      autoApprovalSettings: autoApprovalSettings || DEFAULT_AUTO_APPROVAL_SETTINGS
     };
   }
 
@@ -733,7 +719,7 @@ export class ReclineProvider implements vscode.WebviewViewProvider {
   async initReclineWithHistoryItem(historyItem: HistoryItem) {
     await this.clearTask();
     const { apiConfiguration, customInstructions, autoApprovalSettings } = await this.getState();
-    this.recline = new Recline(
+    this.recline = new ReclineOrchestrator(
       this,
       apiConfiguration,
       autoApprovalSettings,
@@ -747,7 +733,7 @@ export class ReclineProvider implements vscode.WebviewViewProvider {
   async initReclineWithTask(task?: string, images?: string[]) {
     await this.clearTask(); // ensures that an exising task doesn't exist before starting a new one, although this shouldn't be possible since user must clear task before starting a new one
     const { apiConfiguration, customInstructions, autoApprovalSettings } = await this.getState();
-    this.recline = new Recline(this, apiConfiguration, autoApprovalSettings, customInstructions, task, images);
+    this.recline = new ReclineOrchestrator(this, apiConfiguration, autoApprovalSettings, customInstructions, task, images);
   }
 
   // Send any JSON serializable data to the react app

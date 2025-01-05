@@ -2,50 +2,56 @@ import type { ApiConfiguration, MessageParamWithTokenCount, ModelInfo } from "@s
 
 import type { ApiStream } from "./transform/stream";
 
-import { GeminiHandler } from "./providers/gemini";
-import { OllamaHandler } from "./providers/ollama";
-import { OpenAiHandler } from "./providers/openai";
-import { VertexHandler } from "./providers/vertex";
-import { DeepSeekHandler } from "./providers/deepseek";
-import { LmStudioHandler } from "./providers/lmstudio";
-import { AwsBedrockHandler } from "./providers/bedrock";
-import { VsCodeLmHandler } from "./providers/vscode-lm";
-import { AnthropicHandler } from "./providers/anthropic";
-import { OpenRouterHandler } from "./providers/openrouter";
-import { OpenAiNativeHandler } from "./providers/openai-native";
+import { GeminiModelProvider } from "./providers/gemini";
+import { OllamaModelProvider } from "./providers/ollama";
+import { OpenAIModelProvider } from "./providers/openai";
+import { VertexModelProvider } from "./providers/vertex";
+import { BedrockModelProvider } from "./providers/bedrock";
+import { DeepSeekModelProvider } from "./providers/deepseek";
+import { LmStudioModelProvider } from "./providers/lmstudio";
+import { VSCodeLmModelProvider } from "./providers/vscode-lm";
+import { AnthropicModelProvider } from "./providers/anthropic";
+import { OpenRouterModelProvider } from "./providers/openrouter";
+import { OpenAiNativeModelProvider } from "./providers/openai-native";
 
 
-export interface ApiHandler {
+export interface Model {
+  id: string;
+  info: ModelInfo;
+}
+export interface ModelProvider {
   createMessage: (systemPrompt: string, messages: MessageParamWithTokenCount[]) => ApiStream;
-  getModel: () => Promise<{ id: string; info: ModelInfo }>;
+  getModel: () => Promise<Model>;
+  dispose: () => Promise<void>;
 }
 
-export function buildApiHandler(configuration: ApiConfiguration): ApiHandler {
+export function buildApiHandler(configuration: ApiConfiguration): ModelProvider {
   const { apiProvider, ...options } = configuration;
   switch (apiProvider) {
     case "anthropic":
-      return new AnthropicHandler(options);
+      return new AnthropicModelProvider(options);
     case "openrouter":
-      return new OpenRouterHandler(options);
+      return new OpenRouterModelProvider(options);
     case "bedrock":
-      return new AwsBedrockHandler(options);
+      return new BedrockModelProvider(options);
     case "vertex":
-      return new VertexHandler(options);
+      return new VertexModelProvider(options);
     case "openai":
-      return new OpenAiHandler(options);
+      return new OpenAIModelProvider(options);
     case "ollama":
-      return new OllamaHandler(options);
+      return new OllamaModelProvider(options);
     case "lmstudio":
-      return new LmStudioHandler(options);
+      return new LmStudioModelProvider(options);
     case "gemini":
-      return new GeminiHandler(options);
+      return new GeminiModelProvider(options);
     case "openai-native":
-      return new OpenAiNativeHandler(options);
+      return new OpenAiNativeModelProvider(options);
     case "deepseek":
-      return new DeepSeekHandler(options);
+      return new DeepSeekModelProvider(options);
     case "vscode-lm":
-      return new VsCodeLmHandler(options);
+      return new VSCodeLmModelProvider(options);
+    case undefined:
     default:
-      return new AnthropicHandler(options);
+      throw new Error("The selected API provider is not supported");
   }
 }

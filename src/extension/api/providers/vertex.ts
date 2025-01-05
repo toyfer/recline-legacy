@@ -2,7 +2,7 @@ import type { Anthropic } from "@anthropic-ai/sdk";
 
 import type { ApiHandlerOptions, ModelInfo, VertexModelId } from "@shared/api";
 
-import type { ApiHandler } from "../";
+import type { ModelProvider } from "../";
 import type { ApiStream } from "../transform/stream";
 
 import { AnthropicVertex } from "@anthropic-ai/vertex-sdk";
@@ -11,7 +11,7 @@ import { vertexDefaultModelId, vertexModels } from "@shared/api";
 
 
 // https://docs.anthropic.com/en/api/claude-on-vertex-ai
-export class VertexHandler implements ApiHandler {
+export class VertexModelProvider implements ModelProvider {
   private client: AnthropicVertex;
   private options: ApiHandlerOptions;
 

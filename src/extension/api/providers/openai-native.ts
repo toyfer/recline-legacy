@@ -6,7 +6,7 @@ import type {
   OpenAiNativeModelId
 } from "@shared/api";
 
-import type { ApiHandler } from "../";
+import type { ModelProvider } from "../";
 import type { ApiStream } from "../transform/stream";
 
 import OpenAI from "openai";
@@ -19,7 +19,7 @@ import {
 import { convertToOpenAiMessages } from "../transform/openai-format";
 
 
-export class OpenAiNativeHandler implements ApiHandler {
+export class OpenAiNativeModelProvider implements ModelProvider {
   private client: OpenAI;
   private options: ApiHandlerOptions;
 

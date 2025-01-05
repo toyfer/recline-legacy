@@ -4,7 +4,7 @@ import type {
   ModelInfo
 } from "@shared/api";
 
-import type { ApiHandler } from "@extension/api";
+import type { ModelProvider } from "@extension/api";
 import type { ApiStream } from "@extension/api/transform/stream";
 
 import * as vscode from "vscode";
@@ -17,7 +17,8 @@ import { convertToVsCodeLmMessages } from "@extension/api/transform/vscode-lm-fo
 
 const ERROR_PREFIX = "Recline <Language Model API>";
 
-export class VsCodeLmHandler implements ApiHandler {
+export class VSCodeLmModelProvider implements ModelProvider {
+
   private client: vscode.LanguageModelChat | null;
   private configurationWatcher: vscode.Disposable | null;
   private currentRequestCancellation: vscode.CancellationTokenSource | null;
@@ -25,6 +26,7 @@ export class VsCodeLmHandler implements ApiHandler {
   private systemPromptTokenCache: Map<string, number>;
 
   constructor(options: ApiHandlerOptions) {
+
     this.options = options;
     this.client = null;
     this.configurationWatcher = null;
@@ -32,6 +34,7 @@ export class VsCodeLmHandler implements ApiHandler {
     this.systemPromptTokenCache = new Map();
 
     try {
+
       // Set up configuration change listener with proper error boundary
       this.configurationWatcher = vscode.workspace.onDidChangeConfiguration(
         (event: vscode.ConfigurationChangeEvent): void => {
@@ -51,6 +54,7 @@ export class VsCodeLmHandler implements ApiHandler {
       );
     }
     catch (error) {
+
       // Clean up resources if initialization fails
       this.dispose();
 
@@ -61,6 +65,7 @@ export class VsCodeLmHandler implements ApiHandler {
   }
 
   private async calculateInputTokens(systemPrompt: string, messages: MessageParamWithTokenCount[]): Promise<number> {
+
     let totalTokens = 0;
 
     // Hash the system prompt using Web Crypto API (available in both Node.js and browser)
@@ -73,15 +78,19 @@ export class VsCodeLmHandler implements ApiHandler {
     // Check cache using hash
     const cached = this.systemPromptTokenCache.get(hash);
     if (cached !== undefined) {
+
       totalTokens = cached;
     }
     else {
+
       totalTokens = await this.countTokens(systemPrompt);
       this.systemPromptTokenCache.set(hash, totalTokens);
     }
 
     for (const msg of messages) {
+
       if (msg.tokenCount !== undefined) {
+
         totalTokens += msg.tokenCount;
         continue;
       }
@@ -102,12 +111,15 @@ export class VsCodeLmHandler implements ApiHandler {
   }
 
   private async countTokens(text: string | vscode.LanguageModelChatMessage): Promise<number> {
+
     // Early exit if client or cancellation token is missing
     if (!this.client || !this.currentRequestCancellation) {
+
       return 0;
     }
 
     try {
+
       // Count tokens
       const tokenCount: number = await this.client.countTokens(
         text,
@@ -117,6 +129,7 @@ export class VsCodeLmHandler implements ApiHandler {
       return tokenCount;
     }
     catch (error) {
+
       // Re-throw cancellation errors
       if (error instanceof vscode.CancellationError) {
         throw error;
@@ -129,15 +142,20 @@ export class VsCodeLmHandler implements ApiHandler {
   }
 
   private async getClient(): Promise<vscode.LanguageModelChat> {
+
     if (!this.options.vsCodeLmModelSelector) {
+
       throw new Error(`${ERROR_PREFIX} The 'vsCodeLmModelSelector' option is required for the 'vscode-lm' provider.`);
     }
 
     if (!this.client) {
+
       try {
+
         this.client = await this.selectBestModel(this.options.vsCodeLmModelSelector);
       }
       catch (error) {
+
         throw new Error(`${ERROR_PREFIX} Failed to create client: ${error instanceof Error ? error.message : "Unknown error"}`);
       }
     }
@@ -146,15 +164,22 @@ export class VsCodeLmHandler implements ApiHandler {
   }
 
   private async *processStreamChunks(response: vscode.LanguageModelChatResponse, contentBuilder: string[]): ApiStream {
+
     try {
+
       const stream = response.stream;
+
       for await (const chunk of stream) {
+
         if (this.currentRequestCancellation?.token.isCancellationRequested) {
+
           break;
         }
 
         if (chunk instanceof vscode.LanguageModelTextPart && chunk.value) {
+
           contentBuilder.push(chunk.value);
+
           yield {
             type: "text" as const,
             text: chunk.value
@@ -163,18 +188,24 @@ export class VsCodeLmHandler implements ApiHandler {
       }
     }
     catch (error) {
+
       if (error instanceof vscode.CancellationError) {
+
         throw new TypeError(`${ERROR_PREFIX}: Request cancelled by user`);
       }
+
       throw error;
     }
     finally {
+
       this.releaseCurrentCancellation();
     }
   }
 
   private releaseCurrentCancellation(): void {
+
     if (this.currentRequestCancellation) {
+
       this.currentRequestCancellation.cancel();
       this.currentRequestCancellation.dispose();
       this.currentRequestCancellation = null;
@@ -182,6 +213,7 @@ export class VsCodeLmHandler implements ApiHandler {
   }
 
   private async selectBestModel(selector: vscode.LanguageModelChatSelector): Promise<vscode.LanguageModelChat> {
+
     const models: vscode.LanguageModelChat[] = await vscode.lm.selectChatModels(selector);
 
     if (models.length === 0) {
@@ -198,7 +230,9 @@ export class VsCodeLmHandler implements ApiHandler {
   }
 
   async *createMessage(systemPrompt: string, messages: MessageParamWithTokenCount[]): ApiStream {
+
     try {
+
       this.releaseCurrentCancellation();
 
       const client: vscode.LanguageModelChat = await this.getClient();
@@ -243,6 +277,7 @@ export class VsCodeLmHandler implements ApiHandler {
       }
     }
     catch (error) {
+
       this.releaseCurrentCancellation();
 
       throw new Error(
@@ -251,11 +286,13 @@ export class VsCodeLmHandler implements ApiHandler {
     }
   }
 
-  dispose(): void {
+  async dispose(): Promise<void> {
+
     // Clean up resources in a deterministic order
     this.releaseCurrentCancellation();
 
     if (this.configurationWatcher) {
+
       this.configurationWatcher.dispose();
       this.configurationWatcher = null;
     }
@@ -265,6 +302,7 @@ export class VsCodeLmHandler implements ApiHandler {
   }
 
   async getModel(): Promise<{ id: string; info: ModelInfo }> {
+
     const client: vscode.LanguageModelChat = await this.getClient();
 
     return {

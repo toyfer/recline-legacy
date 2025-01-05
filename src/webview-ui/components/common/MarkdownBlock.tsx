@@ -1,10 +1,10 @@
 import type { Options } from "rehype-highlight";
 
 import styled from "styled-components";
-import { memo, useEffect } from "react";
 import { useRemark } from "react-remark";
 import { visit } from "unist-util-visit";
 import rehypeHighlight from "rehype-highlight";
+import { memo, useEffect, useRef } from "react";
 
 import { useExtensionState } from "@webview-ui/context/ExtensionStateContext";
 
@@ -17,35 +17,45 @@ interface MarkdownBlockProps {
 }
 
 const AnimatedText = styled.div<{ isPartial: boolean }>`
-	position: relative;
+  position: relative;
+  transform: translateZ(0);
+  will-change: mask-position;
+  backface-visibility: hidden;
 
-	&:after {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: linear-gradient(
-			90deg,
-			transparent 0%,
-			var(--vscode-editor-foreground) 45%,
-			transparent 90%
-		);
-		opacity: ${props => props.isPartial ? 0.3 : 0};
-		transition: opacity 0.3s ease-out;
-		background-size: 200% 100%;
-		animation: ${props => props.isPartial ? "sweep 1.5s linear infinite" : "none"};
-	}
+  ${props => props.isPartial
+    ? `
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.2) 10px,
+      rgba(0, 0, 0, 0.7) 20px,
+      black 40px
+    );
+    mask-size: 200% 100%;
+    mask-position: -100% 0;
+    animation: revealText 1s ease-out forwards;
 
-	@keyframes sweep {
-		0% {
-			transform: translateX(-100%);
-		}
-		100% {
-			transform: translateX(100%);
-		}
-	}
+    &.new-chunk {
+      animation: none;
+      mask-position: -100% 0;
+      animation: revealText 1s ease-out forwards;
+    }
+
+    @keyframes revealText {
+      from {
+        mask-position: -100% 0;
+      }
+      to {
+        mask-position: 0% 0;
+      }
+    }
+    `
+    : ""}
+
+  & > * {
+    opacity: ${props => props.isPartial ? "0.98" : "1"};
+    transition: opacity 0.2s ease-out;
+  }
 `;
 
 /**
@@ -197,8 +207,9 @@ const StyledPre = styled.pre<{ theme: any }>`
       .join("")}
 `;
 
-const MarkdownBlock = memo(({ markdown, isPartial }: MarkdownBlockProps) => {
+const MarkdownBlock = memo(({ markdown, isPartial }: MarkdownBlockProps): JSX.Element => {
   const { theme } = useExtensionState();
+  const prevMarkdownRef = useRef(markdown);
   const [reactContent, setMarkdown] = useRemark({
     remarkPlugins: [
       remarkUrlToLink,
@@ -232,10 +243,25 @@ const MarkdownBlock = memo(({ markdown, isPartial }: MarkdownBlockProps) => {
     setMarkdown(markdown || "");
   }, [markdown, setMarkdown, theme]);
 
+  useEffect(() => {
+    if (!isPartial || markdown === prevMarkdownRef.current) {
+      return;
+    }
+
+    const element = document.querySelector(".animated-text") as HTMLElement;
+    if (element) {
+      element.classList.remove("new-chunk");
+      // Force reflow
+      void element.offsetWidth;
+      element.classList.add("new-chunk");
+    }
+    prevMarkdownRef.current = markdown;
+  }, [markdown, isPartial]);
+
   return (
     <div style={{}}>
       <StyledMarkdown>
-        <AnimatedText isPartial={isPartial ?? false}>
+        <AnimatedText className="animated-text" isPartial={isPartial ?? false}>
           {reactContent}
         </AnimatedText>
       </StyledMarkdown>

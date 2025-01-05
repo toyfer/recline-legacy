@@ -18,7 +18,7 @@ import type {
 
 } from "@shared/ExtensionMessage";
 
-import type { ApiHandler } from "../api";
+import type { ModelProvider } from "../api";
 import type { ApiStream } from "../api/transform/stream";
 
 import type { ReclineProvider } from "./webview/ReclineProvider";
@@ -48,7 +48,7 @@ import { fileExistsAtPath } from "../utils/fs";
 import { calculateApiCost } from "../utils/cost";
 import { sanitizeUserInput } from "../utils/sanitize";
 import { regexSearchFiles } from "../services/ripgrep";
-import { OpenAiHandler } from "../api/providers/openai";
+import { OpenAIModelProvider } from "../api/providers/openai";
 import { arePathsEqual, getReadablePath } from "../utils/path";
 import { BrowserSession } from "../integrations/browser/BrowserSession";
 import { extractTextFromFile } from "../integrations/misc/extract-text";
@@ -103,7 +103,7 @@ export class Recline {
 
   private userMessageContentReady = false;
   abandoned = false;
-  api: ApiHandler;
+  api: ModelProvider;
   apiConversationHistory: MessageParamWithTokenCount[] = [];
   autoApprovalSettings: AutoApprovalSettings;
   customInstructions?: string;
@@ -676,7 +676,7 @@ export class Recline {
         const totalTokens = (tokensIn || 0) + (tokensOut || 0) + (cacheWrites || 0) + (cacheReads || 0);
         let contextWindow = model.info.contextWindow || 128_000;
         // FIXME: hack to get anyone using openai compatible with deepseek to have the proper context window instead of the default 128k. We need a way for the user to specify the context window for models they input through openai compatible
-        if (this.api instanceof OpenAiHandler && model.id.toLowerCase().includes("deepseek")) {
+        if (this.api instanceof OpenAIModelProvider && model.id.toLowerCase().includes("deepseek")) {
           contextWindow = 64_000;
         }
         let maxAllowedSize: number;

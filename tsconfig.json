@@ -5,7 +5,7 @@
     "jsxImportSource": "preact",
     "lib": [
       "DOM",
-      "ES2020"
+      "ES2021"
     ],
     "useDefineForClassFields": true,
     "baseUrl": "./",

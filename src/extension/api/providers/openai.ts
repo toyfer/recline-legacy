@@ -5,7 +5,7 @@ import type {
   ModelInfo
 } from "@shared/api";
 
-import type { ApiHandler } from "../index";
+import type { ModelProvider } from "../index";
 import type { ApiStream } from "../transform/stream";
 
 import OpenAI, { AzureOpenAI } from "openai";
@@ -18,7 +18,7 @@ import {
 import { convertToOpenAiMessages } from "../transform/openai-format";
 
 
-export class OpenAiHandler implements ApiHandler {
+export class OpenAIModelProvider implements ModelProvider {
   private client: OpenAI;
   private options: ApiHandlerOptions;
 

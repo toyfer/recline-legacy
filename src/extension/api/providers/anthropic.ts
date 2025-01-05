@@ -6,7 +6,7 @@ import type {
   ModelInfo
 } from "@shared/api";
 
-import type { ApiHandler } from "../index";
+import type { ModelProvider } from "../index";
 import type { ApiStream } from "../transform/stream";
 
 import { Anthropic } from "@anthropic-ai/sdk";
@@ -17,7 +17,7 @@ import {
 } from "@shared/api";
 
 
-export class AnthropicHandler implements ApiHandler {
+export class AnthropicModelProvider implements ModelProvider {
   private client: Anthropic;
   private options: ApiHandlerOptions;
 

@@ -2,7 +2,7 @@ import type { Anthropic } from "@anthropic-ai/sdk";
 
 import type { ApiHandlerOptions, GeminiModelId, ModelInfo } from "@shared/api";
 
-import type { ApiHandler } from "../";
+import type { ModelProvider } from "../";
 import type { ApiStream } from "../transform/stream";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -12,7 +12,7 @@ import { geminiDefaultModelId, geminiModels } from "@shared/api";
 import { convertAnthropicMessageToGemini } from "../transform/gemini-format";
 
 
-export class GeminiHandler implements ApiHandler {
+export class GeminiModelProvider implements ModelProvider {
   private client: GoogleGenerativeAI;
   private options: ApiHandlerOptions;
 

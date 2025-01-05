@@ -8,7 +8,7 @@ import defaultShell from "default-shell";
 import { getEnvironmentInfo } from "../../integrations/workspace/get-env-info";
 
 
-export async function SYSTEM_PROMPT(cwd: string,	supportsComputerUse: boolean,	mcpHub: McpHub) {
+export async function SYSTEM_PROMPT(cwd: string, supportsComputerUse: boolean, mcpHub: McpHub): Promise<string> {
   return `You are Recline, a highly skilled software engineer with extensive knowledge in many programming languages, frameworks, design patterns, and best practices.
 
 ====

@@ -2,7 +2,7 @@ import type { Anthropic } from "@anthropic-ai/sdk";
 
 import type { ApiHandlerOptions, BedrockModelId, ModelInfo } from "@shared/api";
 
-import type { ApiHandler } from "../";
+import type { ModelProvider } from "../";
 import type { ApiStream } from "../transform/stream";
 
 import AnthropicBedrock from "@anthropic-ai/bedrock-sdk";
@@ -11,7 +11,7 @@ import { bedrockDefaultModelId, bedrockModels } from "@shared/api";
 
 
 // https://docs.anthropic.com/en/api/claude-on-amazon-bedrock
-export class AwsBedrockHandler implements ApiHandler {
+export class BedrockModelProvider implements ModelProvider {
   private client: AnthropicBedrock;
   private options: ApiHandlerOptions;
 

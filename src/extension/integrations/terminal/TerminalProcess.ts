@@ -1,69 +1,14 @@
-import { EventEmitter } from "node:events";
+import type * as vscode from "vscode";
 
-import * as vscode from "vscode";
 import stripAnsi from "strip-ansi";
 
 import { sanitizeTerminalOutput } from "../../utils/sanitize";
 
 
-export interface TerminalProcessEvents {
-  line: [line: string];
-  continue: [];
-  completed: [];
-  error: [error: Error];
-  no_shell_integration: [];
-}
-
-// Configurable timeouts through VSCode settings
-function getTimeouts() {
-  return {
-    normal: vscode.workspace.getConfiguration("recline.terminal").get("normalTimeout", 2000),
-    compiling: vscode.workspace.getConfiguration("recline.terminal").get("compilingTimeout", 15000)
-  };
-}
-
-// Compilation state detection configuration
-const CompilationState = {
-  startMarkers: new Set([
-    "compiling",
-    "building",
-    "bundling",
-    "transpiling",
-    "generating",
-    "starting"
-  ]),
-  endMarkers: new Set([
-    "compiled",
-    "success",
-    "finish",
-    "complete",
-    "succeed",
-    "done",
-    "end",
-    "stop",
-    "exit",
-    "terminate",
-    "error",
-    "fail"
-  ]),
-  isCompiling(data: string): boolean {
-    const loweredData = data.toLowerCase();
-    return Array.from(this.startMarkers).some(marker =>
-      loweredData.includes(marker.toLowerCase())
-    ) && !Array.from(this.endMarkers).some(marker =>
-      loweredData.includes(marker.toLowerCase())
-    );
-  }
-};
-
-export class TerminalProcess extends EventEmitter<TerminalProcessEvents> {
-  private buffer: string = "";
+export class TerminalProcess {
   private fullOutput: string = "";
-  private hotTimer: NodeJS.Timeout | null = null;
-  private isListening: boolean = true;
   private lastRetrievedIndex: number = 0;
-  isHot: boolean = false;
-  waitForShellIntegration: boolean = true;
+  private terminateLineYield: (() => void) | null = null;
 
   private cleanAndFormatLines(data: string, isFirstChunk: boolean): string {
     const lines = data ? data.split("\n") : [];
@@ -86,79 +31,15 @@ export class TerminalProcess extends EventEmitter<TerminalProcessEvents> {
     return processedLines.join("\n");
   }
 
-  private clearHotState() {
-    if (this.hotTimer) {
-      clearTimeout(this.hotTimer);
-    }
-    this.isHot = false;
-  }
-
-  private emitIfEol(chunk: string) {
-    this.buffer += chunk;
-    let lineEndIndex: number;
-
-    // Normalize line endings
-    this.buffer = this.buffer.replace(/\r\n/g, "\n");
-
-    while ((lineEndIndex = this.buffer.indexOf("\n")) !== -1) {
-      const line = this.sanitizeLine(this.buffer.slice(0, lineEndIndex));
-      this.emit("line", line);
-      this.buffer = this.buffer.slice(lineEndIndex + 1);
-    }
-  }
-
-  private emitRemainingBufferIfListening() {
-    if (this.buffer && this.isListening) {
-      const remainingBuffer = this.removeLastLineArtifacts(this.buffer);
-      if (remainingBuffer) {
-        this.emit("line", remainingBuffer);
-      }
-      this.buffer = "";
-      this.lastRetrievedIndex = this.fullOutput.length;
-    }
-  }
-
-  private executeWithoutShellIntegration(terminal: vscode.Terminal, command: string) {
+  private async *executeWithoutShellIntegration(terminal: vscode.Terminal, command: string): AsyncGenerator<string> {
     terminal.sendText(command, true);
-    this.emit("completed");
-    this.emit("continue");
-    this.emit("no_shell_integration");
+    throw new Error("No shell integration available");
   }
 
-  private async executeWithShellIntegration(terminal: vscode.Terminal, command: string) {
+  private async *executeWithShellIntegration(terminal: vscode.Terminal, command: string): AsyncGenerator<string> {
     const execution = terminal.shellIntegration!.executeCommand(command);
     const stream = execution.read();
-
-    let isFirstChunk = true;
-    let didOutputNonCommand = false;
-    let didEmitEmptyLine = false;
-
-    for await (let data of stream) {
-      data = this.processChunk(data, isFirstChunk, command, didOutputNonCommand);
-      if (data) {
-        didOutputNonCommand = true;
-      }
-
-      this.updateHotState(data);
-
-      if (!didEmitEmptyLine && !this.fullOutput && data) {
-        this.emit("line", "");
-        didEmitEmptyLine = true;
-      }
-
-      this.fullOutput += data;
-      if (this.isListening) {
-        this.emitIfEol(data);
-        this.lastRetrievedIndex = this.fullOutput.length - this.buffer.length;
-      }
-
-      isFirstChunk = false;
-    }
-
-    this.emitRemainingBufferIfListening();
-    this.clearHotState();
-    this.emit("completed");
-    this.emit("continue");
+    yield * this.processOutput(stream, command);
   }
 
   private filterCommandEcho(data: string, command: string): string {
@@ -184,7 +65,7 @@ export class TerminalProcess extends EventEmitter<TerminalProcessEvents> {
 
   private processFirstChunk(data: string): string {
     // Extract content between VSCode shell integration markers
-    const outputBetweenSequences = this.removeLastLineArtifacts(
+    const outputBetweenSequences = this.sanitizeMultipleLines(
       data.match(/\]633;C([\s\S]*?)\]633;D/)?.[1] || ""
     ).trim();
 
@@ -207,40 +88,61 @@ export class TerminalProcess extends EventEmitter<TerminalProcessEvents> {
     return this.cleanAndFormatLines(stripAnsi(data), false);
   }
 
+  private async *processOutput(stream: AsyncIterable<string>, command: string): AsyncGenerator<string> {
+    let buffer = "";
+    let isFirstChunk = true;
+    let didOutputNonCommand = false;
+    let didEmitEmptyLine = false;
+
+    for await (let data of stream) {
+      data = this.processChunk(data, isFirstChunk, command, didOutputNonCommand);
+      if (data) {
+        didOutputNonCommand = true;
+      }
+
+      if (!didEmitEmptyLine && !this.fullOutput && data) {
+        yield "";
+        didEmitEmptyLine = true;
+      }
+
+      this.fullOutput += data;
+      buffer += data;
+
+      // Normalize line endings
+      buffer = buffer.replace(/\r\n/g, "\n");
+
+      // Process complete lines
+      let lineEndIndex: number;
+      while ((lineEndIndex = buffer.indexOf("\n")) !== -1) {
+        const line = this.sanitizeLine(buffer.slice(0, lineEndIndex));
+        buffer = buffer.slice(lineEndIndex + 1);
+
+        yield line;
+
+        // Wait for continue if needed
+        if (this.terminateLineYield) {
+          await new Promise<void>((resolve) => {
+            this.terminateLineYield = resolve;
+          });
+        }
+      }
+
+      isFirstChunk = false;
+      this.lastRetrievedIndex = this.fullOutput.length - buffer.length;
+    }
+
+    // Handle any remaining content in buffer
+    const remaining = this.sanitizeMultipleLines(buffer);
+    if (remaining) {
+      yield remaining;
+    }
+  }
+
   private sanitizeLine(line: string): string {
     return sanitizeTerminalOutput(line);
   }
 
-  private updateHotState(data: string) {
-    this.isHot = true;
-    if (this.hotTimer) {
-      clearTimeout(this.hotTimer);
-    }
-
-    const timeouts = getTimeouts();
-    const timeout = CompilationState.isCompiling(data)
-      ? timeouts.compiling
-      : timeouts.normal;
-
-    this.hotTimer = setTimeout(() => {
-      this.isHot = false;
-    }, timeout);
-  }
-
-  continue() {
-    this.emitRemainingBufferIfListening();
-    this.isListening = false;
-    this.removeAllListeners("line");
-    this.emit("continue");
-  }
-
-  getUnretrievedOutput(): string {
-    const unretrieved = this.fullOutput.slice(this.lastRetrievedIndex);
-    this.lastRetrievedIndex = this.fullOutput.length;
-    return this.removeLastLineArtifacts(unretrieved);
-  }
-
-  removeLastLineArtifacts(output: string): string {
+  private sanitizeMultipleLines(output: string): string {
     return output
       .split("\n")
       .map(line => sanitizeTerminalOutput(line))
@@ -248,30 +150,26 @@ export class TerminalProcess extends EventEmitter<TerminalProcessEvents> {
       .join("\n");
   }
 
-  async run(terminal: vscode.Terminal, command: string) {
+  continue(): void {
+    if (this.terminateLineYield) {
+      const resolve = this.terminateLineYield;
+      this.terminateLineYield = null;
+      resolve();
+    }
+  }
+
+  getUnretrievedOutput(): string {
+    const unretrieved = this.fullOutput.slice(this.lastRetrievedIndex);
+    this.lastRetrievedIndex = this.fullOutput.length;
+    return this.sanitizeMultipleLines(unretrieved);
+  }
+
+  async *run(terminal: vscode.Terminal, command: string): AsyncGenerator<string> {
     if (terminal.shellIntegration?.executeCommand) {
-      await this.executeWithShellIntegration(terminal, command);
+      yield * this.executeWithShellIntegration(terminal, command);
     }
     else {
-      this.executeWithoutShellIntegration(terminal, command);
+      yield * this.executeWithoutShellIntegration(terminal, command);
     }
   }
-}
-
-export type TerminalProcessResultPromise = TerminalProcess & Promise<void>;
-
-export function mergePromise(process: TerminalProcess, promise: Promise<void>): TerminalProcessResultPromise {
-  const nativePromisePrototype = (async () => {})().constructor.prototype;
-  const descriptors = ["then", "catch", "finally"].map(
-    property => [property, Reflect.getOwnPropertyDescriptor(nativePromisePrototype, property)] as const
-  );
-
-  for (const [property, descriptor] of descriptors) {
-    if (descriptor) {
-      const value = descriptor.value.bind(promise);
-      Reflect.defineProperty(process, property, { ...descriptor, value });
-    }
-  }
-
-  return process as TerminalProcessResultPromise;
 }
