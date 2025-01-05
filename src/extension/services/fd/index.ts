@@ -6,8 +6,6 @@ import * as process from "node:process";
 import * as readline from "node:readline";
 import * as childProcess from "node:child_process";
 
-import * as vscode from "vscode";
-
 import { arePathsEqual } from "@extension/utils/path";
 import { extensionPath, workspaceRoot } from "@extension/constants";
 
@@ -109,7 +107,7 @@ export async function listFiles(
   const args = [
     "--absolute-path",
     "--hidden",
-    "--exlude .git" // .gitignore is respected by default, but .git is usually not listed in .gitignore
+    "--exclude .git" // .gitignore is respected by default, but .git is usually not listed in .gitignore
   ];
 
   // Handle recursive vs non-recursive search
