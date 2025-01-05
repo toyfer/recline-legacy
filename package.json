@@ -58,6 +58,7 @@
     "CLINE.LICENSE.md",
     "LICENSE.md",
     "assets",
+    "bin",
     "dist"
   ],
   "engines": {

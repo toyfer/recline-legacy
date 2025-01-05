@@ -3,7 +3,14 @@ import * as path from "node:path";
 import * as readline from "node:readline";
 import * as childProcess from "node:child_process";
 
-import { rgPath } from "@vscode/ripgrep";
+import * as vscode from "vscode";
+
+import { extensionPath } from "@extension/constants";
+
+
+// TODO: Bundler does not pick this up correctly yet.
+// import { rgPath } from "@vscode/ripgrep";
+const rgPath = vscode.Uri.joinPath(vscode.Uri.parse(extensionPath), "bin", "rg.exe").toString();
 
 
 /*

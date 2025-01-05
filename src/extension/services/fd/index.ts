@@ -5,16 +5,22 @@ import * as process from "node:process";
 import * as readline from "node:readline";
 import * as childProcess from "node:child_process";
 
-import { fdPath } from "@reexport/fd-prebuilt";
+import * as vscode from "vscode";
 
-import { workspaceRoot } from "@extension/constants";
 import { arePathsEqual } from "@extension/utils/path";
+import { extensionPath, workspaceRoot } from "@extension/constants";
+
+
+// TODO: Bundler does not pick this up correctly yet.
+// import { fdPath } from "@reexport/fd-prebuilt";
+const fdPath = vscode.Uri.joinPath(vscode.Uri.parse(extensionPath), "bin", "fd.exe").toString();
 
 
 const DEFAULT_LIMIT = 1000;
 
 interface FdOptions {
   recursive?: boolean;
+
   limit?: number;
   filePattern?: string;
 }
