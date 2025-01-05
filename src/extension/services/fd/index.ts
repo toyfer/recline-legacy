@@ -107,7 +107,8 @@ export async function listFiles(
   const args = [
     "--absolute-path",
     "--hidden",
-    "--exclude .git" // .gitignore is respected by default, but .git is usually not listed in .gitignore
+    "--exclude",
+    ".git" // .gitignore is respected by default, but .git is usually not listed in .gitignore
   ];
 
   // Handle recursive vs non-recursive search
