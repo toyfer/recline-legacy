@@ -13,12 +13,14 @@
 </table>
 </div>
 
-**Recline** is your AI-powered coding sidekick that works directly within your CLI and editor to create, edit, and run code like never before. It’s all about redefining the way you code — smarter, faster, and more efficiently.
+**Recline** is your AI-powered coding sidekick that works directly within your CLI and editor to create, edit, and run code like never before.
+Recline aims to redefine the way you code — smarter, faster, and more efficiently.
 
-This project is a fork of [Cline](https://github.com/cline/cline). While Recline builds on the foundation laid by Cline, it sets itself apart through extensive rewrites and a comprehensive restructuring of the codebase.
+This project is a fork of [Cline](https://github.com/cline/cline). While Recline builds upon the foundation laid by Cline, it sets itself apart through extensive rewrites and a comprehensive restructuring of the original codebase.
 These enhancements attempt to make Cline/Recline more stable, more performant, and better suited for today’s development needs.
 
-Powered by the cutting-edge [Claude 3.5 Sonnet](https://www-cdn.anthropic.com/fed9cc193a14b84131812372d8d5857f8f304c52/Model_Card_Claude_3_Addendum.pdf), Recline is equipped to handle complex software tasks with precision and ease. Whether you need to create or modify files, navigate projects, execute terminal commands, or even browse the web, Recline has got your back. And don’t worry—you’re always in control, as every action requires your approval.
+Powered by the cutting-edge [Claude 3.5 Sonnet](https://www-cdn.anthropic.com/fed9cc193a14b84131812372d8d5857f8f304c52/Model_Card_Claude_3_Addendum.pdf), Recline is equipped to handle complex software tasks with precision and ease.
+Whether you need to create or modify files, navigate projects, execute terminal commands, or even browse the web — Recline has got your back. And don’t worry, you’re always in control — as every action requires your approval.
 
 ### Why Choose Recline?
 
