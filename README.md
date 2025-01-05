@@ -13,7 +13,7 @@
 </table>
 </div>
 
-Recline: The autonomous AI assistant that seamlessly integrates with your CLI and editor to create, edit, and run; redefining how you code.
+Recline: The autonomous AI assistant that seamlessly integrates with your CLI and editor to create, edit and run; redefining how you code.
 
 Powered by [Claude 3.5 Sonnet's advanced agentic capabilities](https://www-cdn.anthropic.com/fed9cc193a14b84131812372d8d5857f8f304c52/Model_Card_Claude_3_Addendum.pdf), Recline excels at tackling intricate software development challenges with methodical precision. Through its comprehensive toolkit, Recline can create and modify files, navigate complex projects, interact with web browsers, and execute terminal commands—all with your explicit approval. The integration of the Model Context Protocol (MCP) even enables Recline to expand its own capabilities through custom tools. While traditional autonomous AI systems operate in isolated environments, Recline's human-in-the-loop interface ensures safety and transparency by requiring your approval for every file modification and terminal operation.
 
