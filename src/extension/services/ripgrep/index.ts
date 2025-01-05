@@ -112,7 +112,7 @@ export async function regexSearchFiles(
 
   let output: string;
   try {
-    output = await execRipgrep(rgPath as string, args);
+    output = await execRipgrep(rgPath, args);
   }
   catch {
     return "No results found";

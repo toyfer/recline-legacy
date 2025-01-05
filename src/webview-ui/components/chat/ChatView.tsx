@@ -760,7 +760,7 @@ function ChatView({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
           <div style={{ padding: "0 20px", flexShrink: 0 }}>
             <h2>What can I do for you?</h2>
             <p>
-              Recline can handle complex software development tasks for you by using a set of tools and step-by-step methodology.
+              Recline handles complex software development tasks for you by using a set of tools and step-by-step methodology.
               The tools can create & edit files, explore complex projects, use the browser, and execute terminal commands.
               The extension can assist you in ways that go beyond code completion or tech support.
               In addition to the regular tools, MCPs can be used and even created to extend Recline's capabilities.

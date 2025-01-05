@@ -61,7 +61,7 @@
     "dist"
   ],
   "engines": {
-    "vscode": "^1.91.0"
+    "vscode": "^1.93.0"
   },
   "activationEvents": [],
   "contributes": {
@@ -165,6 +165,11 @@
     "@google/generative-ai": "^0.21.0",
     "@modelcontextprotocol/sdk": "^1.1.0",
     "@reexport/fd-prebuilt": "^1.2.1",
+    "@reexport/fd-prebuilt-darwin-arm64": "^1.2.1",
+    "@reexport/fd-prebuilt-darwin-x64": "^1.2.1",
+    "@reexport/fd-prebuilt-linux-x64-gnu": "^1.2.1",
+    "@reexport/fd-prebuilt-linux-x64-musl": "^1.2.1",
+    "@reexport/fd-prebuilt-win32-x64-msvc": "^1.2.1",
     "@vscode/codicons": "^0.0.36",
     "@vscode/ripgrep": "^1.15.9",
     "@vscode/webview-ui-toolkit": "^1.4.0",
@@ -215,7 +220,7 @@
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@types/sanitize-html": "^2.13.0",
-    "@types/vscode": "^1.91.0",
+    "@types/vscode": "^1.93.0",
     "@types/vscode-webview": "^1.57.5",
     "@vscode/vsce": "^3.2.1",
     "bumpp": "^9.9.2",
