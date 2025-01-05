@@ -71,7 +71,7 @@ Some cool ideas to try:
 - **`@file`**: Add file contents to your workspace without extra prompts.
 - **`@folder`**: Import entire directories at once for large-scale operations.
 
-### Contributing
+## Contributing
 
 <details>
 <summary>How to Set Up Your Development Environment</summary>
