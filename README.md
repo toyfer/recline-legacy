@@ -1,4 +1,4 @@
-# Recline (fork of Cline)
+# Recline (fork of [Cline](https://github.com/cline/cline))
 
 <div align="center">
 <table>
