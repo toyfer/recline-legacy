@@ -1,112 +1,102 @@
 import * as vscode from "vscode";
 
-
-interface NotificationAction {
-  title: string;
-  callback: () => void | Promise<void>;
+export interface NotificationOptions {
+  /** The notification message */
+  message: string;
+  /** Optional title to display before the message */
+  title?: string;
+  /** Optional array of actions to display */
+  actions?: string[];
+  /** Optional modal parameter to force user interaction */
+  modal?: boolean;
 }
 
-interface NotificationOptions {
-  title?: string;
-  subtitle?: string;
-  message: string;
-  type?: "info" | "warning" | "error"; // Type of notification to show
-  modal?: boolean; // Whether to show as modal dialog (for immediate user attention)
-  actions?: NotificationAction[]; // Optional actions for the notification
-  doNotShowAgainKey?: string; // Unique key to store "Don't Show Again" preference
+function formatMessage(title: string | undefined, message: string): string {
+  if (title === undefined || title === null) {
+    return message;
+  }
+
+  if (typeof title !== "string") {
+    return message;
+  }
+
+  const trimmedTitle = title.trim();
+  if (trimmedTitle.length === 0) {
+    return message;
+  }
+
+  return `${trimmedTitle}: ${message}`;
 }
 
 /**
- * Shows a system notification using VSCode's native API
- * Following VSCode guidelines:
- * - Use modal dialogs only for immediate user attention
- * - Support "Don't Show Again" for repeated notifications
- * - Allow actions for user interaction
- * - Show either error or info notifications based on context
- *
- * @param context VSCode extension context for storing preferences
- * @param options Configuration for the notification
+ * Shows an information message
  */
-export async function showSystemNotification(
-  context: vscode.ExtensionContext,
-  options: NotificationOptions
-): Promise<void> {
-  try {
-    const {
-      title = "Recline",
-      subtitle,
-      message,
-      type = "info",
-      modal = false,
-      actions = [],
-      doNotShowAgainKey
-    } = options;
+export async function showInfo(options: NotificationOptions): Promise<string | undefined> {
+  const message = formatMessage(options.title, options.message);
+  const items = options.actions || [];
 
-    if (!message) {
-      throw new Error("Message is required");
-    }
-
-    // Check if notification should be suppressed
-    if (doNotShowAgainKey && context.globalState.get(`notification.${doNotShowAgainKey}.suppress`)) {
-      return;
-    }
-
-    const fullMessage = subtitle ? `${subtitle}\n${message}` : message;
-
-    // Prepare notification items including actions and "Don't Show Again"
-    const items: vscode.MessageItem[] = [
-      ...actions.map(action => ({
-        title: action.title,
-        isCloseAffordance: false
-      }))
-    ];
-
-    // Only add "Don't Show Again" for non-modal notifications with a storage key
-    if (!modal && doNotShowAgainKey) {
-      items.push({
-        title: "Don't Show Again",
-        isCloseAffordance: true
-      });
-    }
-
-    // Show notification using VSCode's native system notification API
-    let notificationFn: typeof vscode.window.showInformationMessage;
-    switch (type) {
-      case "error":
-        notificationFn = vscode.window.showErrorMessage;
-        break;
-      case "warning":
-        notificationFn = vscode.window.showWarningMessage;
-        break;
-      case "info":
-      default:
-        notificationFn = vscode.window.showInformationMessage;
-    }
-
-    const selection = await notificationFn(
-      fullMessage,
-      {
-        modal,
-        detail: title
-      },
-      ...items
-    );
-
-    // Handle selection
-    if (selection != null) {
-      if (selection.title === "Don't Show Again" && doNotShowAgainKey) {
-        await context.globalState.update(`notification.${doNotShowAgainKey}.suppress`, true);
-      }
-      else {
-        // Find and execute the matching action callback
-        const action = actions.find(a => a.title === selection.title);
-        if (action) {
-          await action.callback();
-        }
-      }
-    }
+  if (options.modal) {
+    return vscode.window.showInformationMessage(message, { modal: true }, ...items);
   }
-  catch (error) {
-    console.error("Could not show system notification", error);
+  return vscode.window.showInformationMessage(message, ...items);
+}
+
+/**
+ * Shows a warning message
+ */
+export async function showWarning(options: NotificationOptions): Promise<string | undefined> {
+  const message = formatMessage(options.title, options.message);
+  const items = options.actions || [];
+
+  if (options.modal) {
+    return vscode.window.showWarningMessage(message, { modal: true }, ...items);
   }
+  return vscode.window.showWarningMessage(message, ...items);
+}
+
+/**
+ * Shows an error message
+ */
+export async function showError(options: NotificationOptions): Promise<string | undefined> {
+  const message = formatMessage(options.title, options.message);
+  const items = options.actions || [];
+
+  if (options.modal) {
+    return vscode.window.showErrorMessage(message, { modal: true }, ...items);
+  }
+  return vscode.window.showErrorMessage(message, ...items);
+}
+
+/**
+ * Shows a progress notification
+ */
+export async function withProgress<T>(
+  title: string,
+  task: (progress: vscode.Progress<{ message?: string; increment?: number }>) => Promise<T>
+): Promise<T> {
+  return vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title,
+      cancellable: false
+    },
+    task
+  );
+}
+
+/**
+ * Shows a notification with an input box
+ */
+export async function showInputBox(options: vscode.InputBoxOptions): Promise<string | undefined> {
+  return vscode.window.showInputBox(options);
+}
+
+/**
+ * Shows a notification with a quick pick selection
+ */
+export async function showQuickPick(
+  items: string[] | Thenable<string[]>,
+  options?: vscode.QuickPickOptions
+): Promise<string | undefined> {
+  return vscode.window.showQuickPick(items, options);
 }

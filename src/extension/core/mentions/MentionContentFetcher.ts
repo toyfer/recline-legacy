@@ -57,51 +57,76 @@ export class MentionContentFetcher {
    * Gets content from a file or folder path
    */
   private async getFileOrFolderContent(mentionPath: string): Promise<string> {
-    const absPath = path.resolve(this.cwd, mentionPath);
+    // Handle paths consistently across systems
+    const normalizedPath = mentionPath.replace(/\\/g, "/");
+    const absPath = path.resolve(this.cwd, normalizedPath);
+    const uri = vscode.Uri.file(absPath);
 
     try {
-      const stats = await fs.stat(absPath);
+      const stat = await vscode.workspace.fs.stat(uri);
+      const isFile = (stat.type & vscode.FileType.File) !== 0;
+      const isDirectory = (stat.type & vscode.FileType.Directory) !== 0;
 
-      if (stats.isFile()) {
-        const isBinary = await isBinaryFile(absPath).catch(() => false);
-        if (isBinary) {
-          return "(Binary file, unable to display content)";
+      if (isFile) {
+        try {
+          const isBinary = await isBinaryFile(absPath);
+          if (isBinary) {
+            return "(Binary file, unable to display content)";
+          }
+          return await extractTextFromFile(absPath);
         }
-        return await extractTextFromFile(absPath);
+        catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          throw new FileAccessError(`Failed to read file: ${message}`);
+        }
       }
 
-      if (stats.isDirectory()) {
-        const entries = await fs.readdir(absPath, { withFileTypes: true });
-        let folderContent = "";
-        const fileContentPromises: Promise<string | undefined>[] = [];
+      if (isDirectory) {
+        try {
+          const entries = await vscode.workspace.fs.readDirectory(uri);
+          let folderContent = "";
+          const fileContentPromises: Promise<string | undefined>[] = [];
 
-        entries.forEach((entry, index) => {
-          const isLast = index === entries.length - 1;
-          const linePrefix = isLast ? "└── " : "├── ";
+          // Sort entries for consistent display
+          entries.sort(([nameA], [nameB]) => nameA.localeCompare(nameB));
 
-          // Add entry to tree view
-          if (entry.isFile()) {
-            folderContent += `${linePrefix}${entry.name}\n`;
-            const filePath = path.join(mentionPath, entry.name);
-            const absoluteFilePath = path.resolve(absPath, entry.name);
+          entries.forEach(([name, type], index) => {
+            const isLast = index === entries.length - 1;
+            const linePrefix = isLast ? "└── " : "├── ";
 
-            // Queue file content extraction
-            fileContentPromises.push(this.tryGetFileContent(absoluteFilePath, filePath));
-          }
-          else if (entry.isDirectory()) {
-            folderContent += `${linePrefix}${entry.name}/\n`;
-          }
-          else {
-            folderContent += `${linePrefix}${entry.name}\n`;
-          }
-        });
+            // Add entry to tree view with proper type handling
+            if (type === vscode.FileType.File) {
+              folderContent += `${linePrefix}${name}\n`;
+              const filePath = path.posix.join(normalizedPath, name);
+              const entryUri = vscode.Uri.joinPath(uri, name);
 
-        // Wait for all file contents to be extracted
-        const fileContents = (await Promise.all(fileContentPromises)).filter(Boolean);
-        return `${folderContent}\n${fileContents.join("\n\n")}`.trim();
+              // Queue file content extraction
+              fileContentPromises.push(
+                this.tryGetFileContent(entryUri.fsPath, filePath)
+              );
+            }
+            else if (type === vscode.FileType.Directory) {
+              folderContent += `${linePrefix}${name}/\n`;
+            }
+            else if (type === vscode.FileType.SymbolicLink) {
+              folderContent += `${linePrefix}${name} -> (symlink)\n`;
+            }
+            else {
+              folderContent += `${linePrefix}${name}\n`;
+            }
+          });
+
+          // Wait for all file contents to be extracted
+          const fileContents = (await Promise.all(fileContentPromises)).filter(Boolean);
+          return `${folderContent}\n${fileContents.join("\n\n")}`.trim();
+        }
+        catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          throw new FileAccessError(`Failed to read directory: ${message}`);
+        }
       }
 
-      throw new FileAccessError(`Unsupported file system entry: ${mentionPath}`);
+      throw new FileAccessError(`Unsupported file system entry type: ${mentionPath}`);
     }
     catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -123,25 +148,24 @@ export class MentionContentFetcher {
   }
 
   /**
-   * Normalizes file paths to use forward slashes
-   */
-  private normalizePath(filePath: string): string {
-    return filePath.split(path.sep).join("/");
-  }
-
-  /**
    * Attempts to get content from a file, returns undefined if not possible
    */
   private async tryGetFileContent(absolutePath: string, relativePath: string): Promise<string | undefined> {
     try {
-      const isBinary = await isBinaryFile(absolutePath).catch(() => false);
+      const isBinary = await isBinaryFile(absolutePath);
       if (isBinary) {
         return undefined;
       }
+
       const content = await extractTextFromFile(absolutePath);
-      return `<file_content path="${this.normalizePath(relativePath)}">\n${content}\n</file_content>`;
+      const normalizedPath = relativePath.replace(/\\/g, "/");
+
+      // Return content with proper path formatting
+      return `<file_content path="${normalizedPath}">\n${content}\n</file_content>`;
     }
-    catch {
+    catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.debug(`Failed to read file ${relativePath}: ${message}`);
       return undefined;
     }
   }

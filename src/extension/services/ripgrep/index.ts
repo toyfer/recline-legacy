@@ -1,4 +1,5 @@
 import * as fs from "node:fs";
+import { join } from "node:path";
 import * as path from "node:path";
 import * as readline from "node:readline";
 import * as childProcess from "node:child_process";
@@ -10,7 +11,7 @@ import { extensionPath } from "@extension/constants";
 
 // TODO: Bundler does not pick this up correctly yet.
 // import { rgPath } from "@vscode/ripgrep";
-const rgPath = vscode.Uri.joinPath(vscode.Uri.parse(extensionPath), "bin", "rg.exe").toString();
+const rgPath = join(extensionPath, "bin", "rg.exe");
 
 
 /*

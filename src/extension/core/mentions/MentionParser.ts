@@ -7,9 +7,10 @@ import { InvalidMentionError, MentionType } from "./types";
  * Regex for matching mentions while avoiding TypeScript path aliases:
  * - Negative lookbehind (?<!from\s|import\s) prevents matching after import statements
  * - Negative lookbehind (?<!["']\s*) prevents matching inside string literals in imports
- * - Standard mention pattern remains the same for files, folders, problems, and URLs
+ * - Matches file paths, URLs, or the special 'problems' keyword
+ * - Allows for more flexible path formats while still avoiding false positives
  */
-const MENTION_REGEX = /(?<!from\s|import\s|["']\s*)@((?:\/|\w+:\/\/)\S+?|problems\b)(?=[.,;:!?]?(?:\s|$))/g;
+const MENTION_REGEX = /(?<!from\s|import\s|["']\s*|@)@(\/[^\s.,;:!?]+|https?:\/\/\S+?|problems)(?=[.,;:!?]?(?:\s|$)|$)/g;
 
 /**
  * Handles parsing and validation of mentions in text

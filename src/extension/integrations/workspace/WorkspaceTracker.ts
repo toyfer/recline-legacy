@@ -37,19 +37,28 @@ class WorkspaceTracker {
 
     try {
       const uri = vscode.Uri.file(normalizedPath);
-      const stat = await vscode.workspace.fs.stat(uri);
-      const isDirectory = (stat.type & vscode.FileType.Directory) !== 0;
+      let stat: vscode.FileStat | undefined;
 
-      this.filePaths.add(
-        isDirectory
-          ? this.ensureProperSlashes(`${normalizedPath}/`)
-          : this.ensureProperSlashes(normalizedPath)
+      try {
+        stat = await vscode.workspace.fs.stat(uri);
+      }
+      catch (error) {
+        console.debug(`Could not stat ${normalizedPath}, assuming file: ${error}`);
+      }
+
+      const isDirectory = stat ? (stat.type & vscode.FileType.Directory) !== 0 : false;
+      const finalPath = this.ensureProperSlashes(
+        isDirectory ? `${normalizedPath}/` : normalizedPath
       );
+
+      // Only add if not already present
+      if (!this.filePaths.has(finalPath)) {
+        this.filePaths.add(finalPath);
+        console.debug(`Added path to tracking: ${finalPath}`);
+      }
     }
     catch (error) {
-      // Handle case where stat fails (e.g., for newly created files)
-      this.filePaths.add(this.ensureProperSlashes(normalizedPath));
-      console.warn(`Failed to stat path ${normalizedPath}:`, error);
+      console.warn(`Failed to process path ${normalizedPath}:`, error);
     }
   }
 
@@ -57,8 +66,11 @@ class WorkspaceTracker {
    * Ensure proper slash handling for paths
    */
   private ensureProperSlashes(filePath: string): string {
+    // Normalize to forward slashes
     const normalized = filePath.replace(/\\/g, "/");
-    return normalized.endsWith("/") ? normalized : normalized;
+
+    // Remove any duplicate slashes except after protocol
+    return normalized.replace(/([^:])\/+/g, "$1/");
   }
 
   /**
@@ -123,6 +135,35 @@ class WorkspaceTracker {
       ).then(() => undefined)
     );
     await this.handleFileOperations(updates);
+  }
+
+  /**
+   * Recursively process directory entries
+   */
+  private async processDirectoryEntries(
+    parentUri: vscode.Uri,
+    entries: [string, vscode.FileType][]
+  ): Promise<void> {
+    const processPromises = entries.map(async ([name, type]) => {
+      const entryUri = vscode.Uri.joinPath(parentUri, name);
+      const relativePath = path.relative(workspaceRoot!, entryUri.fsPath);
+
+      if (type === vscode.FileType.Directory) {
+        try {
+          const subEntries = await vscode.workspace.fs.readDirectory(entryUri);
+          await this.addFilePath(entryUri.fsPath);
+          await this.processDirectoryEntries(entryUri, subEntries);
+        }
+        catch (error) {
+          console.warn(`Failed to process directory ${relativePath}:`, error);
+        }
+      }
+      else if (type === vscode.FileType.File) {
+        await this.addFilePath(entryUri.fsPath);
+      }
+    });
+
+    await Promise.all(processPromises);
   }
 
   /**
@@ -226,36 +267,26 @@ class WorkspaceTracker {
   }
 
   /**
-   * Initialize the file path tracking system
+   * Initialize the file path tracking system using fd
    */
   public async initializeFilePaths(): Promise<void> {
-    // Skip initialization if no workspace is selected
-    if (workspaceRoot == null || workspaceRoot.length === 0) {
+    console.debug("Initializing file paths...");
+    console.debug("Workspace root:", workspaceRoot);
+
+    if (!workspaceRoot || workspaceRoot.length === 0) {
+      console.warn("No workspace root available");
       return;
     }
 
     try {
-      const [files, hasMore] = await listFiles(workspaceRoot, {
-        recursive: true,
-        limit: 1_000
-      });
-
-      if (hasMore) {
-        console.warn("Workspace file listing truncated due to size limit");
-      }
-
-      // Process all files in batches to avoid blocking
-      const batchSize = 100;
-      for (let i = 0; i < files.length; i += batchSize) {
-        const batch = files.slice(i, i + batchSize);
-        await Promise.all(batch.map(async file => this.addFilePath(file)));
-      }
-
+      const [files, _] = await listFiles(workspaceRoot, { recursive: true, limit: 1000 });
+      files.forEach(file => this.filePaths.add(this.normalizeFilePath(file)));
       await this.scheduleWorkspaceUpdate();
+
+      console.debug(`Initialized workspace tracking with ${this.filePaths.size} paths`);
     }
     catch (error) {
       console.error("Failed to initialize file paths:", error);
-      // Still attempt to register listeners even if initial scan fails
     }
   }
 }

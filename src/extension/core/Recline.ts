@@ -48,7 +48,6 @@ import { calculateApiCost } from "../utils/cost";
 import { regexSearchFiles } from "../services/ripgrep";
 import { OpenAiHandler } from "../api/providers/openai";
 import { arePathsEqual, getReadablePath } from "../utils/path";
-import { showSystemNotification } from "../integrations/notifications";
 import { BrowserSession } from "../integrations/browser/BrowserSession";
 import { extractTextFromFile } from "../integrations/misc/extract-text";
 import { DiffViewProvider } from "../integrations/editor/DiffViewProvider";
@@ -56,6 +55,7 @@ import { TerminalManager } from "../integrations/terminal/TerminalManager";
 import { fixModelHtmlEscaping, removeInvalidChars } from "../utils/string";
 import { showOmissionWarning } from "../integrations/editor/detect-omission";
 import { parseSourceCodeForDefinitionsTopLevel } from "../services/tree-sitter";
+import { showError, showInfo, showWarning } from "../integrations/notifications";
 import { getCachedEnvironmentInfo } from "../integrations/workspace/environment-cache";
 import { findToolName, formatContentBlockToMarkdown } from "../integrations/misc/export-markdown";
 
@@ -1226,8 +1226,8 @@ export class Recline {
 
         const showNotificationForApprovalIfAutoApprovalEnabled = (message: string) => {
           if (this.autoApprovalSettings.enabled && this.autoApprovalSettings.enableNotifications) {
-            showSystemNotification({
-              subtitle: "Approval Required",
+            showInfo({
+              title: "Approval Required",
               message
             });
           }
@@ -2019,8 +2019,8 @@ export class Recline {
                 if (didAutoApprove && this.autoApprovalSettings.enableNotifications) {
                   // if the command was auto-approved, and it's long running we need to notify the user after some time has passed without proceeding
                   timeoutId = setTimeout(() => {
-                    showSystemNotification({
-                      subtitle: "Command is still running",
+                    showWarning({
+                      title: "Command is still running",
                       message:
                         "An auto-approved command has been running for 30s, and may need your attention."
                     });
@@ -2273,8 +2273,8 @@ export class Recline {
                   this.autoApprovalSettings.enabled
                   && this.autoApprovalSettings.enableNotifications
                 ) {
-                  showSystemNotification({
-                    subtitle: "Recline has a question...",
+                  showInfo({
+                    title: "Recline has a question...",
                     message: question.replace(/\n/g, " ")
                   });
                 }
@@ -2371,8 +2371,8 @@ export class Recline {
                   this.autoApprovalSettings.enabled
                   && this.autoApprovalSettings.enableNotifications
                 ) {
-                  showSystemNotification({
-                    subtitle: "Task Completed",
+                  showInfo({
+                    title: "Task Completed",
                     message: result.replace(/\n/g, " ")
                   });
                 }
@@ -2485,8 +2485,8 @@ export class Recline {
 
     if (this.consecutiveMistakeCount >= 3) {
       if (this.autoApprovalSettings.enabled && this.autoApprovalSettings.enableNotifications) {
-        showSystemNotification({
-          subtitle: "Error",
+        showError({
+          title: "Error",
           message: "Recline is having trouble. Would you like to continue the task?"
         });
       }
@@ -2515,8 +2515,8 @@ export class Recline {
       && this.consecutiveAutoApprovedRequestsCount >= this.autoApprovalSettings.maxRequests
     ) {
       if (this.autoApprovalSettings.enableNotifications) {
-        showSystemNotification({
-          subtitle: "Max Requests Reached",
+        showWarning({
+          title: "Max Requests Reached",
           message: `Recline has auto-approved ${this.autoApprovalSettings.maxRequests.toString()} API requests.`
         });
       }

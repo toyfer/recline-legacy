@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
+import { join } from "node:path";
 import * as path from "node:path";
 import * as process from "node:process";
 import * as readline from "node:readline";
@@ -13,7 +14,7 @@ import { extensionPath, workspaceRoot } from "@extension/constants";
 
 // TODO: Bundler does not pick this up correctly yet.
 // import { fdPath } from "@reexport/fd-prebuilt";
-const fdPath = vscode.Uri.joinPath(vscode.Uri.parse(extensionPath), "bin", "fd.exe").toString();
+const fdPath = join(extensionPath, "bin", "fd.exe");
 
 
 const DEFAULT_LIMIT = 1000;
@@ -107,7 +108,8 @@ export async function listFiles(
   // Base fd arguments
   const args = [
     "--absolute-path",
-    "--hidden"
+    "--hidden",
+    "--exlude .git" // .gitignore is respected by default, but .git is usually not listed in .gitignore
   ];
 
   // Handle recursive vs non-recursive search

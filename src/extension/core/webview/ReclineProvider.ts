@@ -170,7 +170,7 @@ export class ReclineProvider implements vscode.WebviewViewProvider {
         switch (message.type) {
           case "webviewDidLaunch":
             this.postStateToWebview();
-            this.workspaceTracker?.initializeFilePaths(); // don't await
+            await this.workspaceTracker?.initializeFilePaths();
             getTheme().then(async theme =>
               this.postMessageToWebview({ type: "theme", text: JSON.stringify(theme) })
             );
