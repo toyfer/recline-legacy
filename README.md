@@ -127,10 +127,10 @@ Consider these possibilities:
 
 ## License
 
-[Mozilla Public License Version 2.0 © 2025 Jules Mons](./LICENSE.md)
-[Apache 2.0 © 2024 Cline Bot Inc.](./CLINE.LICENSE.md)
+[Mozilla Public License Version 2.0 © 2025 Jules Mons](./LICENSE.md)  
+[Apache 2.0 © 2024 Cline Bot Inc.](./CLINE.LICENSE.md)  
 
 ## Attribution
 
-[Cline](https://cline.bot)
-[Recliner Icon](https://thenounproject.com/creator/iconpai19/)
+[Cline](https://cline.bot)  
+[Recliner Icon](https://thenounproject.com/creator/iconpai19/)  
