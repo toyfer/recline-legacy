@@ -70,7 +70,7 @@
         {
           "id": "recline-ActivityBar",
           "title": "Recline",
-          "icon": "$(recline)"
+          "icon": "assets/icons/recline.svg"
         }
       ]
     },

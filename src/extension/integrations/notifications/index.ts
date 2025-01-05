@@ -93,7 +93,7 @@ export async function showSystemNotification(
     );
 
     // Handle selection
-    if (selection) {
+    if (selection != null) {
       if (selection.title === "Don't Show Again" && doNotShowAgainKey) {
         await context.globalState.update(`notification.${doNotShowAgainKey}.suppress`, true);
       }

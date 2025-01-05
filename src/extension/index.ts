@@ -69,7 +69,6 @@ export function activate(context: vscode.ExtensionContext): ReclineAPI {
       retainContextWhenHidden: true,
       localResourceRoots: [context.extensionUri]
     });
-    // TODO: use better svg icon with light and dark variants (see https://stackoverflow.com/questions/58365687/vscode-extension-iconpath)
 
     panel.iconPath = {
       light: vscode.Uri.joinPath(context.extensionUri, "assets", "icons", "recline_light.svg"),
