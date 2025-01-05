@@ -24,10 +24,7 @@ interface FdOptions {
   filePattern?: string;
 }
 
-async function execFd(
-  dirPath: string,
-  args: string[]
-): Promise<string[]> {
+async function execFd(args: string[]): Promise<string[]> {
   return new Promise((resolve, reject) => {
     // Ensure fd runs from project root for proper gitignore handling
     const fdProcess = childProcess.spawn(fdPath, args, {
@@ -105,6 +102,8 @@ export async function listFiles(
 
   // Base fd arguments
   const args = [
+    "--search-path",
+    dirPath,
     "--absolute-path",
     "--hidden",
     "--exclude",
@@ -130,7 +129,7 @@ export async function listFiles(
 
   try {
     // FD automatically respects .gitignore and .fdignore
-    const results = await execFd(dirPath, args);
+    const results = await execFd(args);
 
     // Mark directories with trailing / (fd doesn't do this by default)
     const markedResults = await Promise.all(results.map(async (filePath) => {
