@@ -6,7 +6,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { isBinaryFile } from "isbinaryfile";
 
-import diagnosticsMonitor from "@extension/integrations/diagnostics";
+import { diagnosticsMonitor } from "@extension/integrations/diagnostics";
 import { urlToMarkdown } from "@extension/services/browser/urlToMarkdown";
 import { extractTextFromFile } from "@extension/integrations/misc/extract-text";
 

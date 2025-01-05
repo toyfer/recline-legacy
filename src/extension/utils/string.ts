@@ -3,7 +3,7 @@
  * @param text String potentially containing incorrectly escaped HTML entities from AI models
  * @returns String with HTML entities converted back to normal characters
  */
-export function fixModelHtmlEscaping(text: string): string {
+export function fixModelHtmlEscaping(text) {
   return text
     .replace(/&gt;/g, ">")
     .replace(/&lt;/g, "<")
@@ -17,6 +17,6 @@ export function fixModelHtmlEscaping(text: string): string {
  * @param text String potentially containing invalid characters
  * @returns String with invalid characters removed
  */
-export function removeInvalidChars(text: string): string {
+export function removeInvalidChars(text: string) {
   return text.replace(/\uFFFD/g, "");
 }

@@ -6,53 +6,7 @@ import { isEqual } from "es-toolkit";
 
 type FileDiagnostics = [vscode.Uri, vscode.Diagnostic[]][];
 
-/**
- * Monitors workspace diagnostics and provides utilities for comparing and formatting them.
- * Combines real-time monitoring with pure functional comparison and formatting.
- */
 export class DiagnosticsMonitor {
-  private diagnosticsChangeEmitter: vscode.EventEmitter<FileDiagnostics> = new vscode.EventEmitter<FileDiagnostics>();
-  private disposables: vscode.Disposable[] = [];
-  private lastDiagnostics: FileDiagnostics = [];
-
-  constructor() {
-    // Listen for diagnostic changes and emit the new diagnostics
-    this.disposables.push(
-      vscode.languages.onDidChangeDiagnostics(() => {
-        const currentDiagnostics = this.getDiagnostics();
-        // Only emit if diagnostics actually changed
-        if (!isEqual(this.lastDiagnostics, currentDiagnostics)) {
-          this.lastDiagnostics = currentDiagnostics;
-          this.diagnosticsChangeEmitter.fire(currentDiagnostics);
-        }
-      })
-    );
-  }
-
-  /**
-   * Determines appropriate timeout based on diagnostic state.
-   */
-  private determineTimeout(diagnostics: FileDiagnostics): number {
-    const hasErrors = diagnostics.some(([_, diags]) =>
-      diags.some(d => d.severity === vscode.DiagnosticSeverity.Error)
-    );
-    // Longer timeout when errors exist as they might take longer to resolve
-    return hasErrors ? 10_000 : 300;
-  }
-
-  /**
-   * Gets current diagnostics, filtered to only include errors.
-   */
-  private getDiagnostics(): FileDiagnostics {
-    return vscode.languages.getDiagnostics()
-      .filter(([_, diagnostics]) =>
-        diagnostics.some(d => d.severity === vscode.DiagnosticSeverity.Error)
-      )
-      .map(([uri, diagnostics]) => [
-        uri,
-        diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error)
-      ]);
-  }
 
   /**
    * Gets a human-readable label for diagnostic severity.
@@ -73,37 +27,6 @@ export class DiagnosticsMonitor {
   }
 
   /**
-   * Waits for updated diagnostics with a timeout.
-   */
-  private async waitForUpdatedDiagnostics(timeout: number): Promise<FileDiagnostics> {
-    return new Promise<FileDiagnostics>((resolve) => {
-      const timer = setTimeout(() => {
-        cleanup();
-        const finalDiagnostics = this.getDiagnostics();
-        this.lastDiagnostics = finalDiagnostics;
-        resolve(finalDiagnostics);
-      }, timeout);
-
-      const disposable = this.diagnosticsChangeEmitter.event((newDiagnostics) => {
-        cleanup();
-        this.lastDiagnostics = newDiagnostics;
-        resolve(newDiagnostics);
-      });
-
-      const cleanup = () => {
-        clearTimeout(timer);
-        disposable.dispose();
-      };
-    });
-  }
-
-  public dispose() {
-    this.disposables.forEach(d => d.dispose());
-    this.disposables = [];
-    this.diagnosticsChangeEmitter.dispose();
-  }
-
-  /**
    * Formats diagnostics into a human-readable string.
    */
   public formatDiagnostics(
@@ -121,35 +44,13 @@ export class DiagnosticsMonitor {
         for (const diagnostic of problems) {
           const label = this.getSeverityLabel(diagnostic.severity);
           const line = diagnostic.range.start.line + 1;
-          const source = diagnostic.source ? `${diagnostic.source} ` : "";
+          const source = diagnostic.source != null ? `${diagnostic.source} ` : "";
           result += `\n- [${source}${label}] Line ${line}: ${diagnostic.message}`;
         }
       }
     }
 
     return result.trim();
-  }
-
-  /**
-   * Gets the current diagnostics, optionally waiting for changes if requested.
-   */
-  public async getCurrentDiagnostics(shouldWaitForChanges: boolean): Promise<FileDiagnostics> {
-    const currentDiagnostics = this.getDiagnostics();
-
-    if (!shouldWaitForChanges) {
-      this.lastDiagnostics = currentDiagnostics;
-      return currentDiagnostics;
-    }
-
-    // If diagnostics changed since last check, return immediately
-    if (!isEqual(this.lastDiagnostics, currentDiagnostics)) {
-      this.lastDiagnostics = currentDiagnostics;
-      return currentDiagnostics;
-    }
-
-    // Determine appropriate timeout based on current diagnostic state
-    const timeout = this.determineTimeout(currentDiagnostics);
-    return this.waitForUpdatedDiagnostics(timeout);
   }
 
   /**
@@ -175,5 +76,4 @@ export class DiagnosticsMonitor {
 }
 
 // Create a singleton instance and export it
-const diagnosticsMonitor = new DiagnosticsMonitor();
-export default diagnosticsMonitor;
+export const diagnosticsMonitor = new DiagnosticsMonitor();

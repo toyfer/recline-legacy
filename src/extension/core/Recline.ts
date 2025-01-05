@@ -15,6 +15,7 @@ import type {
   ReclineSay,
   ReclineSayBrowserAction,
   ReclineSayTool
+
 } from "@shared/ExtensionMessage";
 
 import type { ApiHandler } from "../api";
@@ -45,6 +46,7 @@ import { buildApiHandler } from "../api";
 import { listFiles } from "../services/fd";
 import { fileExistsAtPath } from "../utils/fs";
 import { calculateApiCost } from "../utils/cost";
+import { sanitizeUserInput } from "../utils/sanitize";
 import { regexSearchFiles } from "../services/ripgrep";
 import { OpenAiHandler } from "../api/providers/openai";
 import { arePathsEqual, getReadablePath } from "../utils/path";
@@ -510,7 +512,7 @@ export class Recline {
     this.apiConversationHistory = [];
     await this.providerRef.deref()?.postStateToWebview();
 
-    await this.say("text", task, images);
+    await this.say("text", task != null ? sanitizeUserInput(task) : undefined, images);
 
     const imageBlocks: Anthropic.ImageBlockParam[] = formatResponse.imageBlocks(images);
     await this.initiateTaskLoop([
@@ -522,11 +524,11 @@ export class Recline {
     ]);
   }
 
-  abortTask() {
+  async abortTask(): Promise<void> {
     this.abort = true; // will stop any autonomously running promises
     this.terminalManager.disposeAll();
-    this.browserSession.closeBrowser();
-    this.diffViewProvider.revertChanges();
+    await this.browserSession.closeBrowser();
+    await this.diffViewProvider.revertChanges();
   }
 
   // partial has three valid states true (partial message), false (completion of partial message), undefined (individual complete message)
@@ -975,7 +977,7 @@ export class Recline {
 
   async handleWebviewAskResponse(askResponse: ReclineAskResponse, text?: string, images?: string[]) {
     this.askResponse = askResponse;
-    this.askResponseText = text;
+    this.askResponseText = text != null ? sanitizeUserInput(text) : text;
     this.askResponseImages = images;
   }
 
@@ -2691,7 +2693,7 @@ export class Recline {
       catch (error) {
         // abandoned happens when extension is no longer waiting for the recline instance to finish aborting (error is thrown here when any function in the for loop throws due to this.abort)
         if (!this.abandoned) {
-          this.abortTask(); // if the stream failed, there's various states the task could be in (i.e. could have streamed some tools the user may have executed), so we just resort to replicating a cancel task
+          await this.abortTask(); // if the stream failed, there's various states the task could be in (i.e. could have streamed some tools the user may have executed), so we just resort to replicating a cancel task
           await abortStream(
             "streaming_failed",
             error.message ?? JSON.stringify(serializeError(error), null, 2)

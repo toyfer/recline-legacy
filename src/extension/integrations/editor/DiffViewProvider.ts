@@ -4,8 +4,8 @@ import * as fs from "node:fs/promises";
 import * as diff from "diff";
 import * as vscode from "vscode";
 
-import diagnosticsMonitor from "../diagnostics";
 import { arePathsEqual } from "../../utils/path";
+import { diagnosticsMonitor } from "../diagnostics";
 import { createDirectoriesForFile } from "../../utils/fs";
 import { formatResponse } from "../../core/prompts/responses";
 
@@ -233,7 +233,26 @@ export class DiffViewProvider {
     const preSaveContent = updatedDocument.getText();
 
     if (updatedDocument.isDirty) {
-      await updatedDocument.save();
+      // Save and wait for formatting to complete
+      const formatPromise = new Promise<void>((resolve) => {
+        const disposable = vscode.workspace.onDidChangeTextDocument((e) => {
+          if (e.document === updatedDocument && e.contentChanges.length > 0 && !e.document.isDirty) {
+            // When the document changes but is not dirty, it means formatting has completed
+            disposable.dispose();
+            resolve();
+          }
+        });
+
+        // In case no formatting occurs, resolve on the next tick after save
+        updatedDocument.save().then(() => {
+          setTimeout(() => {
+            disposable.dispose();
+            resolve();
+          }, 0);
+        });
+      });
+
+      await formatPromise;
     }
 
     const postSaveContent = updatedDocument.getText();

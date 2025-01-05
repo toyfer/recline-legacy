@@ -3,6 +3,8 @@ import { EventEmitter } from "node:events";
 import * as vscode from "vscode";
 import stripAnsi from "strip-ansi";
 
+import { sanitizeTerminalOutput } from "../../utils/sanitize";
+
 
 export interface TerminalProcessEvents {
   line: [line: string];
@@ -206,10 +208,7 @@ export class TerminalProcess extends EventEmitter<TerminalProcessEvents> {
   }
 
   private sanitizeLine(line: string): string {
-    return line
-      .replace(/\r/g, "") // Remove standalone CR
-      .replace(/[\x00-\x09\x0B-\x1F\x7F-\uFFFF]/g, "") // Remove control chars
-      .trim();
+    return sanitizeTerminalOutput(line);
   }
 
   private updateHotState(data: string) {
@@ -242,18 +241,11 @@ export class TerminalProcess extends EventEmitter<TerminalProcessEvents> {
   }
 
   removeLastLineArtifacts(output: string): string {
-    const lines = output
-      .replace(/\r\n/g, "\n")
+    return output
       .split("\n")
-      .map(line => line
-        .replace(/\r/g, "")
-        .replace(/[%$#>]\s*$/, "")
-        .replace(/[\x00-\x09\x0B-\x1F\x7F-\uFFFF]/g, "")
-        .trim()
-      )
-      .filter(line => line.length > 0);
-
-    return lines.join("\n").trimEnd();
+      .map(line => sanitizeTerminalOutput(line))
+      .filter(line => line.length > 0)
+      .join("\n");
   }
 
   async run(terminal: vscode.Terminal, command: string) {
