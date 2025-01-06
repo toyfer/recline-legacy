@@ -17,8 +17,8 @@ import pWaitFor from "p-wait-for";
 import { findLast } from "@shared/array";
 import { DEFAULT_AUTO_APPROVAL_SETTINGS } from "@shared/AutoApprovalSettings";
 
+import { Recline } from "@extension/core/Recline";
 import { GlobalFileNames } from "@extension/constants";
-import { ReclineOrchestrator } from "@extension/core/ReclineOrchestrator";
 
 import { openMention } from "../mentions";
 import { buildApiHandler } from "../../api";
@@ -79,7 +79,7 @@ export class ReclineProvider implements vscode.WebviewViewProvider {
   public static readonly tabPanelId = "recline.TabPanelProvider";
   private disposables: vscode.Disposable[] = [];
   private latestAnnouncementId = "jan-01-2025"; // update to some unique identifier when we add a new announcement
-  private recline?: ReclineOrchestrator;
+  private recline?: Recline;
   private view?: vscode.WebviewView | vscode.WebviewPanel;
   private workspaceTracker?: WorkspaceTracker;
   mcpHub?: McpHub;
@@ -719,7 +719,7 @@ export class ReclineProvider implements vscode.WebviewViewProvider {
   async initReclineWithHistoryItem(historyItem: HistoryItem) {
     await this.clearTask();
     const { apiConfiguration, customInstructions, autoApprovalSettings } = await this.getState();
-    this.recline = new ReclineOrchestrator(
+    this.recline = new Recline(
       this,
       apiConfiguration,
       autoApprovalSettings,
@@ -733,7 +733,7 @@ export class ReclineProvider implements vscode.WebviewViewProvider {
   async initReclineWithTask(task?: string, images?: string[]) {
     await this.clearTask(); // ensures that an exising task doesn't exist before starting a new one, although this shouldn't be possible since user must clear task before starting a new one
     const { apiConfiguration, customInstructions, autoApprovalSettings } = await this.getState();
-    this.recline = new ReclineOrchestrator(this, apiConfiguration, autoApprovalSettings, customInstructions, task, images);
+    this.recline = new Recline(this, apiConfiguration, autoApprovalSettings, customInstructions, task, images);
   }
 
   // Send any JSON serializable data to the react app

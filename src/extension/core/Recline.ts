@@ -42,6 +42,8 @@ import {
 import { combineApiRequests } from "@shared/combineApiRequests";
 import { combineCommandSequences, COMMAND_REQ_APP_STRING } from "@shared/combineCommandSequences";
 
+import { GlobalFileNames } from "@extension/constants";
+
 import { buildApiHandler } from "../api";
 import { listFiles } from "../services/fd";
 import { fileExistsAtPath } from "../utils/fs";
@@ -65,7 +67,6 @@ import { parseMentions } from "./mentions";
 import { formatResponse } from "./prompts/responses";
 import { parseAssistantMessage } from "./assistant-message";
 import { truncateHalfConversation } from "./sliding-window";
-import { GlobalFileNames } from "./webview/ReclineProvider";
 import { constructNewFileContent } from "./assistant-message/diff";
 import { addUserInstructions, SYSTEM_PROMPT } from "./prompts/system";
 
