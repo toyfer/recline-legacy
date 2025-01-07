@@ -792,7 +792,8 @@ export class Recline {
       return [
         true,
         formatResponse.toolResult(
-          `Command is still running in the user's terminal.${result.length > 0 ? `\nHere's the output so far:\n${result}` : ""
+          `Command is still running in the user's terminal.${
+            result.length > 0 ? `\nHere's the output so far:\n${result}` : ""
           }\n\nThe user provided the following feedback:\n<feedback>\n${userFeedback.text}\n</feedback>`,
           userFeedback.images
         )
@@ -805,7 +806,8 @@ export class Recline {
     else {
       return [
         false,
-        `Command is still running in the user's terminal.${result.length > 0 ? `\nHere's the output so far:\n${result}` : ""
+        `Command is still running in the user's terminal.${
+          result.length > 0 ? `\nHere's the output so far:\n${result}` : ""
         }\n\nYou will be updated on the terminal status and new output in the future.`
       ];
     }

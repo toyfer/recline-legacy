@@ -1,159 +1,218 @@
 import type { TerminalInfo } from "./TerminalRegistry";
+import type { TerminalProcessResultPromise } from "./TerminalProcess";
 
 import * as vscode from "vscode";
 import pWaitFor from "p-wait-for";
 
 import { arePathsEqual } from "../../utils/path";
 
-import { TerminalProcess } from "./TerminalProcess";
 import { TerminalRegistry } from "./TerminalRegistry";
+import { mergePromise, TerminalProcess } from "./TerminalProcess";
 
 
-const SHELL_INTEGRATION_TIMEOUT = 4000;
+/*
+TerminalManager:
+- Creates/reuses terminals
+- Runs commands via runCommand(), returning a TerminalProcess
+- Handles shell integration events
+
+TerminalProcess extends EventEmitter and implements Promise:
+- Emits 'line' events with output while promise is pending
+- process.continue() resolves promise and stops event emission
+- Allows real-time output handling or background execution
+
+getUnretrievedOutput() fetches latest output for ongoing commands
+
+Enables flexible command execution:
+- Await for completion
+- Listen to real-time events
+- Continue execution in background
+- Retrieve missed output later
+
+Notes:
+- it turns out some shellIntegration APIs are available on cursor, although not on older versions of vscode
+- "By default, the shell integration script should automatically activate on supported shells launched from VS Code."
+Supported shells:
+Linux/macOS: bash, fish, pwsh, zsh
+Windows: pwsh
+
+
+Example:
+
+const terminalManager = new TerminalManager(context);
+
+// Run a command
+const process = terminalManager.runCommand('npm install', '/path/to/project');
+
+process.on('line', (line) => {
+    console.log(line);
+});
+
+// To wait for the process to complete naturally:
+await process;
+
+// Or to continue execution even if the command is still running:
+process.continue();
+
+// Later, if you need to get the unretrieved output:
+const unretrievedOutput = terminalManager.getUnretrievedOutput(terminalId);
+console.log('Unretrieved output:', unretrievedOutput);
+
+Resources:
+- https://github.com/microsoft/vscode/issues/226655
+- https://code.visualstudio.com/updates/v1_93#_terminal-shell-integration-api
+- https://code.visualstudio.com/docs/terminal/shell-integration
+- https://code.visualstudio.com/api/references/vscode-api#Terminal
+- https://github.com/microsoft/vscode-extension-samples/blob/main/terminal-sample/src/extension.ts
+- https://github.com/microsoft/vscode-extension-samples/blob/main/shell-integration-sample/src/extension.ts
+*/
+
+/*
+The new shellIntegration API gives us access to terminal command execution output handling.
+However, we don't update our VSCode type definitions or engine requirements to maintain compatibility
+with older VSCode versions. Users on older versions will automatically fall back to using sendText
+for terminal command execution.
+Interestingly, some environments like Cursor enable these APIs even without the latest VSCode engine.
+This approach allows us to leverage advanced features when available while ensuring broad compatibility.
+*/
+declare module "vscode" {
+  // https://github.com/microsoft/vscode/blob/f0417069c62e20f3667506f4b7e53ca0004b4e3e/src/vscode-dts/vscode.d.ts#L7442
+  interface Terminal {
+    shellIntegration?: {
+      cwd?: vscode.Uri;
+      executeCommand?: (command: string) => {
+        read: () => AsyncIterable<string>;
+      };
+    };
+  }
+  // https://github.com/microsoft/vscode/blob/f0417069c62e20f3667506f4b7e53ca0004b4e3e/src/vscode-dts/vscode.d.ts#L10794
+  interface Window {
+    onDidStartTerminalShellExecution?: (
+      listener: (e: any) => any,
+      thisArgs?: any,
+      disposables?: vscode.Disposable[],
+    ) => vscode.Disposable;
+  }
+}
 
 export class TerminalManager {
   private disposables: vscode.Disposable[] = [];
-  private readonly registry = TerminalRegistry.getInstance();
+  private processes: Map<number, TerminalProcess> = new Map();
   private terminalIds: Set<number> = new Set();
-  private terminalProcesses: Map<number, TerminalProcess> = new Map();
 
   constructor() {
-    this.setupShellIntegrationHandler();
-  }
-
-  private async executeCommand(
-    terminalProcess: TerminalProcess,
-    terminalInfo: TerminalInfo,
-    command: string
-  ): Promise<AsyncGenerator<string>> {
-
-    await this.waitForShellIntegration(terminalInfo.terminal);
-    return terminalProcess.run(terminalInfo.terminal, command);
-  }
-
-  private findAvailableTerminal(cwd: string): TerminalInfo | undefined {
-    return this.registry.getAllTerminals().find((terminal: TerminalInfo) => {
-      if (terminal.busy) {
-        return false;
-      }
-
-      const terminalCwd = terminal.terminal.shellIntegration?.cwd;
-      if (!terminalCwd) {
-        return false;
-      }
-
-      return arePathsEqual(vscode.Uri.file(cwd).fsPath, terminalCwd.fsPath);
-    });
-  }
-
-  private handleNoShellIntegration(terminalId: number): void {
-    console.warn(`Shell integration not available for terminal ${terminalId}`);
-    this.registry.removeTerminal(terminalId);
-    this.terminalIds.delete(terminalId);
-    this.terminalProcesses.delete(terminalId);
-  }
-
-  private setupShellIntegrationHandler(): void {
+    let disposable: vscode.Disposable | undefined;
     try {
-      const disposable = vscode.window.onDidStartTerminalShellExecution?.(
-        async e => e?.execution?.read()
-      );
-      if (disposable != null) {
-        this.disposables.push(disposable);
-      }
+      disposable = (vscode.window as vscode.Window).onDidStartTerminalShellExecution?.(async (e) => {
+        // Creating a read stream here results in a more consistent output. This is most obvious when running the `date` command.
+        e?.execution?.read();
+      });
     }
     catch (error) {
-      console.warn("Shell integration setup failed:", error);
+      // console.error("Error setting up onDidEndTerminalShellExecution", error)
+    }
+    if (disposable) {
+      this.disposables.push(disposable);
     }
   }
 
-  private async waitForShellIntegration(terminal: vscode.Terminal): Promise<void> {
-
-    const hasShellIntegration = terminal.shellIntegration !== undefined;
-    if (!hasShellIntegration) {
-      try {
-        await pWaitFor(
-          () => terminal.shellIntegration !== undefined,
-          { timeout: SHELL_INTEGRATION_TIMEOUT }
-        );
-      }
-      catch (error) {
-        console.warn("Shell integration timeout:", error);
-      }
-    }
-  }
-
-  private async *wrapterminalProcessOutput(
-    terminalProcess: TerminalProcess,
-    generator: AsyncGenerator<string>,
-    terminalInfo: TerminalInfo
-  ): AsyncGenerator<string> {
-    try {
-      yield * generator;
-    }
-    catch (error) {
-      if (error instanceof Error && error.message === "No shell integration available") {
-        this.handleNoShellIntegration(terminalInfo.id);
-      }
-      else {
-        throw error;
-      }
-    }
-    finally {
-      terminalInfo.busy = false;
-    }
-  }
-
-  continueterminalProcess(terminalId: number): void {
-    this.terminalProcesses.get(terminalId)?.continue();
-  }
-
-  disposeAll(): void {
+  disposeAll() {
+    // for (const info of this.terminals) {
+    // 	//info.terminal.dispose() // dont want to dispose terminals when task is aborted
+    // }
     this.terminalIds.clear();
-    this.terminalProcesses.clear();
-
-    for (const disposable of this.disposables) {
-      disposable.dispose();
-    }
-
+    this.processes.clear();
+    this.disposables.forEach(disposable => disposable.dispose());
     this.disposables = [];
   }
 
   async getOrCreateTerminal(cwd: string): Promise<TerminalInfo> {
-    const availableTerminal = this.findAvailableTerminal(cwd);
+    // Find available terminal from our pool first (created for this task)
+    const availableTerminal = TerminalRegistry.getAllTerminals().find((t) => {
+      if (t.busy) {
+        return false;
+      }
+      const terminalCwd = t.terminal.shellIntegration?.cwd; // one of cline's commands could have changed the cwd of the terminal
+      if (!terminalCwd) {
+        return false;
+      }
+      return arePathsEqual(vscode.Uri.file(cwd).fsPath, terminalCwd.fsPath);
+    });
     if (availableTerminal) {
       this.terminalIds.add(availableTerminal.id);
       return availableTerminal;
     }
 
-    const newTerminalInfo = this.registry.createTerminal(cwd);
+    const newTerminalInfo = TerminalRegistry.createTerminal(cwd);
     this.terminalIds.add(newTerminalInfo.id);
     return newTerminalInfo;
   }
 
-  getTerminals(busy: boolean): Array<{ id: number; lastCommand: string }> {
+  getTerminals(busy: boolean): { id: number; lastCommand: string }[] {
     return Array.from(this.terminalIds)
-      .map(id => this.registry.getTerminal(id))
+      .map(id => TerminalRegistry.getTerminal(id))
       .filter((t): t is TerminalInfo => t !== undefined && t.busy === busy)
-      .map(({ id, lastCommand }) => ({ id, lastCommand }));
+      .map(t => ({ id: t.id, lastCommand: t.lastCommand }));
   }
 
   getUnretrievedOutput(terminalId: number): string {
     if (!this.terminalIds.has(terminalId)) {
       return "";
     }
-    const terminalProcess = this.terminalProcesses.get(terminalId);
-    return terminalProcess ? terminalProcess.getUnretrievedOutput() : "";
+    const process = this.processes.get(terminalId);
+    return process ? process.getUnretrievedOutput() : "";
   }
 
-  async runCommand(terminalInfo: TerminalInfo, command: string): Promise<AsyncGenerator<string>> {
+  isProcessHot(terminalId: number): boolean {
+    const process = this.processes.get(terminalId);
+    return process ? process.isHot : false;
+  }
+
+  runCommand(terminalInfo: TerminalInfo, command: string): TerminalProcessResultPromise {
     terminalInfo.busy = true;
     terminalInfo.lastCommand = command;
+    const process = new TerminalProcess();
+    this.processes.set(terminalInfo.id, process);
 
-    const terminalProcess = new TerminalProcess();
-    this.terminalProcesses.set(terminalInfo.id, terminalProcess);
+    process.once("completed", () => {
+      terminalInfo.busy = false;
+    });
 
-    const outputGenerator = await this.executeCommand(terminalProcess, terminalInfo, command);
-    return this.wrapterminalProcessOutput(terminalProcess, outputGenerator, terminalInfo);
+    // if shell integration is not available, remove terminal so it does not get reused as it may be running a long-running process
+    process.once("no_shell_integration", () => {
+      console.log(`no_shell_integration received for terminal ${terminalInfo.id}`);
+      // Remove the terminal so we can't reuse it (in case it's running a long-running process)
+      TerminalRegistry.removeTerminal(terminalInfo.id);
+      this.terminalIds.delete(terminalInfo.id);
+      this.processes.delete(terminalInfo.id);
+    });
+
+    const promise = new Promise<void>((resolve, reject) => {
+      process.once("continue", () => {
+        resolve();
+      });
+      process.once("error", (error) => {
+        console.error(`Error in terminal ${terminalInfo.id}:`, error);
+        reject(error);
+      });
+    });
+
+    // if shell integration is already active, run the command immediately
+    if (terminalInfo.terminal.shellIntegration) {
+      process.waitForShellIntegration = false;
+      process.run(terminalInfo.terminal, command);
+    }
+    else {
+      // docs recommend waiting 3s for shell integration to activate
+      pWaitFor(() => terminalInfo.terminal.shellIntegration !== undefined, { timeout: 4000 }).finally(() => {
+        const existingProcess = this.processes.get(terminalInfo.id);
+        if (existingProcess && existingProcess.waitForShellIntegration) {
+          existingProcess.waitForShellIntegration = false;
+          existingProcess.run(terminalInfo.terminal, command);
+        }
+      });
+    }
+
+    return mergePromise(process, promise);
   }
 }
