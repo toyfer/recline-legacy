@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
 
+import { extensionPath } from "@extension/constants";
+
 
 export interface TerminalInfo {
   terminal: vscode.Terminal;
@@ -17,8 +19,12 @@ export class TerminalRegistry {
   static createTerminal(cwd?: string | vscode.Uri | undefined): TerminalInfo {
     const terminal = vscode.window.createTerminal({
       cwd,
-      name: "Cline",
-      iconPath: new vscode.ThemeIcon("robot")
+      name: "Recline",
+      iconPath: vscode.Uri.file(
+        vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark
+          ? `${extensionPath}/assets/icons/recline_dark.svg`
+          : `${extensionPath}/assets/icons/recline_light.svg`
+      )
     });
     const newInfo: TerminalInfo = {
       terminal,
