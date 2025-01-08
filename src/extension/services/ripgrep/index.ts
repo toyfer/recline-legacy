@@ -11,7 +11,8 @@ import { extensionPath } from "@extension/constants";
 
 // TODO: Bundler does not pick this up correctly yet.
 // import { rgPath } from "@vscode/ripgrep";
-const rgPath = join(extensionPath, "bin", "rg.exe");
+// const rgPath = join(extensionPath, "bin", "rg.exe");
+const rgPath = "rg";
 
 
 /*

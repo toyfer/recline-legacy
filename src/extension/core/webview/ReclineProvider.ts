@@ -119,7 +119,6 @@ export class ReclineProvider implements vscode.WebviewViewProvider {
 
     const stylesUri: vscode.Uri = getUri(webview, this.context.extensionUri, ["dist", "css", "webview.css"]);
     const scriptUri: vscode.Uri = getUri(webview, this.context.extensionUri, ["dist", "webview.js"]);
-    const codiconsUri: vscode.Uri = getUri(webview, this.context.extensionUri, ["node_modules", "@vscode/codicons", "dist", "codicon.css"]);
 
     const nonce = getNonce();
 
@@ -132,7 +131,6 @@ export class ReclineProvider implements vscode.WebviewViewProvider {
             <meta name="theme-color" content="#000000">
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} data:; script-src 'nonce-${nonce}';">
             <link rel="stylesheet" type="text/css" href="${stylesUri.toString()}">
-            <link rel="stylesheet type="text/css href="${codiconsUri.toString()}">
             <title>Recline</title>
           </head>
           <body>

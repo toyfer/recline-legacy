@@ -12,7 +12,8 @@ import { extensionPath, workspaceRoot } from "@extension/constants";
 
 // TODO: Bundler does not pick this up correctly yet.
 // import { fdPath } from "@reexport/fd-prebuilt";
-const fdPath = join(extensionPath, "bin", "fd.exe");
+// const fdPath = join(extensionPath, "bin", "fd.exe");
+const fdPath = "fd";
 
 
 const DEFAULT_LIMIT = 1000;
