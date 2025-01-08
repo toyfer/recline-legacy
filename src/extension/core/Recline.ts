@@ -865,7 +865,7 @@ export class Recline {
     );
     details += `\n${getFormattedPaths(visibleFiles, cwd, "(No visible files)")}`;
 
-    details += "\n\n# VSCode Open Tabs";
+    details += "\n\n# VSCode Open Tabs (Excluding 'VSCode Visible Files')";
     const visibleFilesSet = new Set(visibleFiles);
     const openTabs = vscode.window.tabGroups.all
       .flatMap(group => group.tabs)
