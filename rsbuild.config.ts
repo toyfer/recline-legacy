@@ -57,6 +57,7 @@ export default defineConfig({
       output: {
         target: "web-worker",
         emitCss: true,
+        assetPrefix: ".",
         filename: {
           js: "webview.js",
           css: "webview.css"
@@ -65,14 +66,14 @@ export default defineConfig({
           root: "dist",
           js: "",
           jsAsync: "",
-          css: "css",
-          cssAsync: "css",
-          svg: "imgs",
-          font: "fonts",
+          css: "",
+          cssAsync: "",
+          svg: "",
+          font: "",
           html: "",
-          wasm: "wasm",
-          image: "imgs",
-          media: "assets",
+          wasm: "",
+          image: "",
+          media: "",
           assets: "assets"
         }
       },
