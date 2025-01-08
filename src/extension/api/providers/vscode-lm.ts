@@ -177,7 +177,7 @@ export class VSCodeLmModelProvider implements ModelProvider {
           break;
         }
 
-        if (chunk instanceof vscode.LanguageModelTextPart && chunk.value) {
+        if (chunk instanceof vscode.LanguageModelTextPart && chunk.value != null && chunk.value.length > 0) {
 
           contentBuilder.push(chunk.value);
 
@@ -309,7 +309,7 @@ export class VSCodeLmModelProvider implements ModelProvider {
     return {
       id: stringifyVsCodeLmModelSelector(client),
       info: {
-        maxTokens: Math.min(client.maxInputTokens, 4096), // VSCode Language Model API does not provide output token limit... Using an arbitrary value based on various github issues.
+        maxTokens: client.maxInputTokens / 2, // VSCode Language Model API does not provide output token limit... Using an arbitrary value based on various github issues.
         contextWindow: client.maxInputTokens,
         supportsImages: false,
         supportsPromptCache: false,
