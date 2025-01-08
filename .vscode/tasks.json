@@ -26,8 +26,8 @@
         },
         "background": {
           "activeOnStart": true,
-          "beginsPattern": "^start   Building...",
-          "endsPattern": "^  Total: \\d+\\.\\d+\\s"
+          "beginsPattern": "^start   Building",
+          "endsPattern": "^ready   Built in"
         }
       }
     }

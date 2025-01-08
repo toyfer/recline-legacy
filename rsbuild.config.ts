@@ -82,6 +82,9 @@ export default defineConfig({
   },
   tools: {
     rspack: {
+      ignoreWarnings: [
+        /Critical dependency/
+      ],
       output: {
         asyncChunks: false
       }
