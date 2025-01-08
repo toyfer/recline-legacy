@@ -117,7 +117,7 @@ export class ReclineProvider implements vscode.WebviewViewProvider {
    */
   private getHtmlContent(webview: vscode.Webview): string {
 
-    const stylesUri: vscode.Uri = getUri(webview, this.context.extensionUri, ["dist", "css", "webview.css"]);
+    const stylesUri: vscode.Uri = getUri(webview, this.context.extensionUri, ["dist", "webview.css"]);
     const scriptUri: vscode.Uri = getUri(webview, this.context.extensionUri, ["dist", "webview.js"]);
 
     const nonce = getNonce();
