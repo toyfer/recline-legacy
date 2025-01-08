@@ -347,6 +347,7 @@ export function ChatRowContent({
               path={tool.path}
               isExpanded={isExpanded}
               onToggleExpand={onToggleExpand}
+              isStreaming={message.partial}
             />
           </>
         );
@@ -367,6 +368,7 @@ export function ChatRowContent({
               path={tool.path}
               isExpanded={isExpanded}
               onToggleExpand={onToggleExpand}
+              isStreaming={message.partial}
             />
           </>
         );
@@ -449,6 +451,7 @@ export function ChatRowContent({
               language="shell-session"
               isExpanded={isExpanded}
               onToggleExpand={onToggleExpand}
+              isStreaming={message.partial}
             />
           </>
         );
@@ -469,6 +472,7 @@ export function ChatRowContent({
               language="shell-session"
               isExpanded={isExpanded}
               onToggleExpand={onToggleExpand}
+              isStreaming={message.partial}
             />
           </>
         );
@@ -488,6 +492,7 @@ export function ChatRowContent({
               path={tool.path}
               isExpanded={isExpanded}
               onToggleExpand={onToggleExpand}
+              isStreaming={message.partial}
             />
           </>
         );
@@ -522,6 +527,7 @@ export function ChatRowContent({
               language="plaintext"
               isExpanded={isExpanded}
               onToggleExpand={onToggleExpand}
+              isStreaming={message.partial}
             />
           </>
         );
@@ -714,6 +720,7 @@ export function ChatRowContent({
                     language="json"
                     isExpanded={true}
                     onToggleExpand={onToggleExpand}
+                    isStreaming={message.partial}
                   />
                 </div>
               )}

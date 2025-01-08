@@ -143,12 +143,12 @@ export class Recline {
 
   // Storing task to disk for history
 
-  private async addToApiConversationHistory(message: MessageParamWithTokenCount) {
+  private async addToApiConversationHistory(message: MessageParamWithTokenCount): Promise<void> {
     this.apiConversationHistory.push(message);
     await this.saveApiConversationHistory();
   }
 
-  private async addToReclineMessages(message: ReclineMessage) {
+  private async addToReclineMessages(message: ReclineMessage): Promise<void> {
     this.reclineMessages.push(message);
     await this.saveReclineMessages();
   }
@@ -634,11 +634,14 @@ export class Recline {
 
   // Task lifecycle
 
-  async *attemptApiRequest(previousApiReqIndex: number): ApiStream {
-    // Wait for MCP servers to be connected before generating system prompt
-    await pWaitFor(() => this.providerRef.deref()?.mcpHub?.isConnecting !== true, { timeout: 10_000 }).catch(() => {
+  async* attemptApiRequest(previousApiReqIndex: number): ApiStream {
+    const MCP_CONNECTION_TIMEOUT = 10_000;
+    try {
+      await pWaitFor(() => this.providerRef.deref()?.mcpHub?.isConnecting !== true, { timeout: MCP_CONNECTION_TIMEOUT });
+    }
+    catch (error) {
       console.error("MCP servers failed to connect in time");
-    });
+    }
 
     const mcpHub = this.providerRef.deref()?.mcpHub;
     if (!mcpHub) {
@@ -646,54 +649,23 @@ export class Recline {
     }
 
     const model = await this.api.getModel();
-    let systemPrompt = await SYSTEM_PROMPT(cwd, model.info.supportsComputerUse ?? false, mcpHub);
-    const settingsCustomInstructions = this.customInstructions?.trim();
-    const reclineRulesFilePath = path.resolve(cwd, GlobalFileNames.reclineRules);
-    let reclineRulesFileInstructions: string | undefined;
-    if (await fileExistsAtPath(reclineRulesFilePath)) {
-      try {
-        const ruleFileContent = (await fs.readFile(reclineRulesFilePath, "utf8")).trim();
-        if (ruleFileContent) {
-          reclineRulesFileInstructions = `# .reclinerules\n\nThe following is provided by a root-level .reclinerules file where the user has specified instructions for this working directory (${cwd.toPosix()})\n\n${ruleFileContent}`;
-        }
-      }
-      catch {
-        console.error(`Failed to read .reclinerules file at ${reclineRulesFilePath}`);
-      }
-    }
+    let systemPrompt: string = await SYSTEM_PROMPT(cwd, model.info.supportsComputerUse ?? false, mcpHub);
+    const settingsCustomInstructions: string | undefined = this.customInstructions?.trim();
+    const reclineRulesFileInstructions: string | undefined = await this.getReclineRulesInstructions(
+      path.resolve(cwd, GlobalFileNames.reclineRules)
+    );
 
     if (settingsCustomInstructions || reclineRulesFileInstructions) {
-      // altering the system prompt mid-task will break the prompt cache, but in the grand scheme this will not change often so it's better to not pollute user messages with it the way we have to with <potentially relevant details>
       systemPrompt += addUserInstructions(settingsCustomInstructions, reclineRulesFileInstructions);
     }
 
-    // If the previous API request's total token usage is close to the context window, truncate the conversation history to free up space for the new request
     if (previousApiReqIndex >= 0) {
       const previousRequest = this.reclineMessages[previousApiReqIndex];
       if (previousRequest && previousRequest.text) {
-        const { tokensIn, tokensOut, cacheWrites, cacheReads }: ReclineApiReqInfo = JSON.parse(
-          previousRequest.text
-        );
+        const { tokensIn, tokensOut, cacheWrites, cacheReads }: ReclineApiReqInfo = JSON.parse(previousRequest.text);
         const totalTokens = (tokensIn || 0) + (tokensOut || 0) + (cacheWrites || 0) + (cacheReads || 0);
-        let contextWindow = model.info.contextWindow || 128_000;
-        // FIXME: hack to get anyone using openai compatible with deepseek to have the proper context window instead of the default 128k. We need a way for the user to specify the context window for models they input through openai compatible
-        if (this.api instanceof OpenAIModelProvider && model.id.toLowerCase().includes("deepseek")) {
-          contextWindow = 64_000;
-        }
-        let maxAllowedSize: number;
-        switch (contextWindow) {
-          case 64_000: // deepseek models
-            maxAllowedSize = contextWindow - 27_000;
-            break;
-          case 128_000: // most models
-            maxAllowedSize = contextWindow - 30_000;
-            break;
-          case 200_000: // claude models
-            maxAllowedSize = contextWindow - 40_000;
-            break;
-          default:
-            maxAllowedSize = Math.max(contextWindow - 40_000, contextWindow * 0.8); // for deepseek, 80% of 64k meant only ~10k buffer which was too small and resulted in users getting context window errors.
-        }
+        const contextWindow: number = model.info.contextWindow || 128_000;
+        const maxAllowedSize = contextWindow - (contextWindow * 0.25);
 
         if (totalTokens >= maxAllowedSize) {
           const truncatedMessages = truncateHalfConversation(this.apiConversationHistory);
@@ -706,29 +678,25 @@ export class Recline {
     const iterator = stream[Symbol.asyncIterator]();
 
     try {
-      // awaiting first chunk to see if it will throw an error
       const firstChunk = await iterator.next();
       yield firstChunk.value;
     }
     catch (error) {
-      // note that this api_req_failed ask is unique in that we only present this option if the api hasn't streamed any content yet (ie it fails on the first chunk due), as it would allow them to hit a retry button. However if the api failed mid-stream, it could be in any arbitrary state where some tools may have executed, so that error is handled differently and requires cancelling the task entirely.
       const { response } = await this.ask(
         "api_req_failed",
         error.message ?? JSON.stringify(serializeError(error), null, 2)
       );
       if (response !== "yesButtonClicked") {
-        // this will never happen since if noButtonClicked, we will clear current task, aborting this instance
         throw new Error("API request failed");
       }
       await this.say("api_req_retried");
-      // delegate generator output from the recursive call
       yield * this.attemptApiRequest(previousApiReqIndex);
       return;
     }
+    finally {
+      await this.api.dispose();
+    }
 
-    // no error, so we can continue to yield all remaining chunks
-    // (needs to be placed outside of try/catch since it we want caller to handle errors not with api_req_failed as that is reserved for first chunk failures only)
-    // this delegates to another generator or iterable object. In this case, it's saying "yield all remaining values from this iterator". This effectively passes along all subsequent chunks from the original stream.
     yield * iterator;
   }
 
@@ -977,6 +945,18 @@ export class Recline {
     }
 
     return `<environment_details>\n${details.trim()}\n</environment_details>`;
+  }
+
+  async getReclineRulesInstructions(reclineRulesFilePath: string): Promise<string | undefined> {
+    try {
+      const ruleFileContent = await fs.readFile(reclineRulesFilePath, "utf8");
+      const trimmedContent = ruleFileContent.trim();
+      return trimmedContent ? `# .reclinerules\n\nThe following is provided by a root-level .reclinerules file where the user has specified instructions for this working directory (${cwd.toPosix()})\n\n${trimmedContent}` : undefined;
+    }
+    catch {
+      console.error(`Failed to read .reclinerules file at ${reclineRulesFilePath}`);
+      return undefined;
+    }
   }
 
   async handleWebviewAskResponse(askResponse: ReclineAskResponse, text?: string, images?: string[]) {

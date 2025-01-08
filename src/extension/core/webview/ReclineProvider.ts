@@ -335,7 +335,7 @@ export class ReclineProvider implements vscode.WebviewViewProvider {
           case "cancelTask":
             if (this.recline) {
               const { historyItem } = await this.getTaskWithId(this.recline.taskId);
-              this.recline.abortTask();
+              await this.recline.abortTask();
               await pWaitFor(() => this.recline == null || this.recline.didFinishAborting, {
                 timeout: 3_000
               }).catch(() => {

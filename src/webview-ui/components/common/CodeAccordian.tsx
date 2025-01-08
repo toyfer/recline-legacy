@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 
 import { getLanguageFromPath } from "@webview-ui/utils/getLanguageFromPath";
 
@@ -15,6 +15,39 @@ interface CodeAccordianProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   isLoading?: boolean;
+  isStreaming?: boolean; // Indicates if this content is being actively streamed
+}
+
+const HOT_DURATION_MS = 3000; // How long the accordion stays "hot" after receiving new content
+
+const shimmerStyles = {
+  background: `linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0) 100%
+  )`,
+  backgroundSize: "1000px 100%",
+  animation: "shimmer 2s infinite linear"
+};
+
+// Define shimmer animation keyframes
+const shimmerKeyframes = `
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+`;
+
+// Add keyframes to document
+if (typeof document !== "undefined") {
+  const style = document.createElement("style");
+  style.textContent = shimmerKeyframes;
+  document.head.appendChild(style);
 }
 
 /*
@@ -23,7 +56,11 @@ We need to remove leading non-alphanumeric characters from the path in order for
 [^a-zA-Z0-9]+: Matches one or more characters that are not alphanumeric.
 The replace method removes these matched characters, effectively trimming the string up to the first alphanumeric character.
 */
-export const removeLeadingNonAlphanumeric = (path: string): string => path.replace(/^[^a-z0-9]+/i, "");
+export function removeLeadingNonAlphanumeric(path: string): string {
+  if (!path)
+    return "";
+  return path.replace(/^[^a-z0-9]+/i, "");
+}
 
 function CodeAccordian({
   code,
@@ -34,10 +71,39 @@ function CodeAccordian({
   isConsoleLogs,
   isExpanded,
   onToggleExpand,
-  isLoading
-}: CodeAccordianProps) {
+  isLoading,
+  isStreaming
+}: CodeAccordianProps): React.ReactElement {
+  const [isHot, setIsHot] = useState<boolean>(false);
+  const [lastUpdateTimestamp, setLastUpdateTimestamp] = useState<number>(Date.now());
+
+  // Monitor code changes to detect new chunks
+  useEffect(() => {
+    if (code && isStreaming) {
+      setLastUpdateTimestamp(Date.now());
+      setIsHot(true);
+    }
+  }, [code, isStreaming]);
+
+  // Control hot state duration
+  useEffect(() => {
+    if (isHot) {
+      const timeout = setTimeout(() => {
+        setIsHot(false);
+      }, HOT_DURATION_MS);
+      return () => clearTimeout(timeout);
+    }
+  }, [isHot, lastUpdateTimestamp]);
   const inferredLanguage = useMemo(
-    () => code && (language ?? (path ? getLanguageFromPath(path) : undefined)),
+    () => {
+      if (!code)
+        return undefined;
+      if (language)
+        return language;
+      if (!path)
+        return undefined;
+      return getLanguageFromPath(path);
+    },
     [path, language, code]
   );
 
@@ -46,6 +112,8 @@ function CodeAccordian({
       style={{
         borderRadius: 3,
         backgroundColor: CODE_BLOCK_BG_COLOR,
+        position: "relative",
+        ...(isHot && !isExpanded ? shimmerStyles : {}),
         overflow: "hidden", // This ensures the inner scrollable area doesn't overflow the rounded corners
         border: "1px solid var(--vscode-editorGroup-border)"
       }}
@@ -70,7 +138,11 @@ function CodeAccordian({
           {isFeedback || isConsoleLogs ? (
             <div style={{ display: "flex", alignItems: "center" }}>
               <span
-                className={`codicon codicon-${isFeedback ? "feedback" : "output"}`}
+                className={`codicon codicon-${
+                  isFeedback
+                    ? "feedback"
+                    : "output"
+                }`}
                 style={{ marginRight: "6px" }}
               >
               </span>
@@ -87,7 +159,7 @@ function CodeAccordian({
             </div>
           ) : (
             <>
-              {path?.startsWith(".") && <span>.</span>}
+              {path && path.startsWith(".") && <span>.</span>}
               <span
                 style={{
                   whiteSpace: "nowrap",

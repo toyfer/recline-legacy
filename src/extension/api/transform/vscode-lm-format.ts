@@ -1,100 +1,71 @@
 import type { Anthropic } from "@anthropic-ai/sdk";
 
+import * as crypto from "node:crypto";
+
 import * as vscode from "vscode";
 
 
-/**
- * Safely converts a value into a plain object.
- *
- * @param value - Any value to convert into an object
- * @returns A plain object representation of the input value
- */
 function asObjectSafe(value: any): object {
-  if (value == null) {
+  if (value == null)
     return {};
-  }
-  try {
-    if (typeof value === "string") {
-      return JSON.parse(value) as object;
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
     }
-    if (typeof value === "object") {
-      return Object.assign({}, value) as object;
+    catch {
+      return {};
     }
-    return {};
   }
-  catch (error) {
-    console.warn("Recline <Language Model API>: Failed to parse object:", error);
-    return {};
+  if (typeof value === "object") {
+    return { ...value };
   }
+  return {};
 }
 
-/**
- * Helper to parse user message parts (tool_result, text, image).
- */
+// Helper to parse user message parts
 function parseUserContentParts(
   parts: (Anthropic.TextBlockParam | Anthropic.ImageBlockParam | Anthropic.ToolResultBlockParam)[]
 ): (vscode.LanguageModelToolResultPart | vscode.LanguageModelTextPart)[] {
-  const toolResultParts: vscode.LanguageModelToolResultPart[] = [];
-  const textParts: vscode.LanguageModelTextPart[] = [];
-
+  const contentParts: (vscode.LanguageModelToolResultPart | vscode.LanguageModelTextPart)[] = [];
   for (const part of parts) {
     if (part.type === "tool_result") {
-      const contentArr = typeof part.content === "string"
-        ? [new vscode.LanguageModelTextPart(part.content)]
-        : (part.content?.map((sub) => {
-          if (sub.type === "image") {
-            return new vscode.LanguageModelTextPart(`[Image (${sub.source?.type || ""}): ${sub.source?.media_type || ""}]`);
-          }
-          return new vscode.LanguageModelTextPart(sub.text);
-        }) ?? []);
-      toolResultParts.push(new vscode.LanguageModelToolResultPart(part.tool_use_id, contentArr));
+      const contentArr = (part.content || []).map(sub =>
+        sub.type === "image"
+          ? new vscode.LanguageModelTextPart(`[Image (${sub.source?.type || ""}): ${sub.source?.media_type || ""}]`)
+          : new vscode.LanguageModelTextPart(sub.text)
+      );
+      contentParts.push(new vscode.LanguageModelToolResultPart(part.tool_use_id, contentArr));
     }
     else if (part.type === "image") {
-      textParts.push(new vscode.LanguageModelTextPart(`[Image (${part.source?.type || ""}): ${part.source?.media_type || ""}]`));
+      contentParts.push(new vscode.LanguageModelTextPart(`[Image (${part.source?.type || ""}): ${part.source?.media_type || ""}]`));
     }
-    else {
-      textParts.push(new vscode.LanguageModelTextPart(part.text));
+    else if (part.type === "text") {
+      contentParts.push(new vscode.LanguageModelTextPart(part.text));
     }
   }
-  return [...toolResultParts, ...textParts];
+  return contentParts;
 }
 
-/**
- * Helper to parse assistant message parts (tool_use, text, image).
- */
+// Helper to parse assistant message parts
 function parseAssistantContentParts(
   parts: (Anthropic.TextBlockParam | Anthropic.ImageBlockParam | Anthropic.ToolUseBlockParam)[]
 ): (vscode.LanguageModelToolCallPart | vscode.LanguageModelTextPart)[] {
-  const toolCallParts: vscode.LanguageModelToolCallPart[] = [];
-  const textParts: vscode.LanguageModelTextPart[] = [];
-
+  const contentParts: (vscode.LanguageModelToolCallPart | vscode.LanguageModelTextPart)[] = [];
   for (const part of parts) {
     if (part.type === "tool_use") {
-      toolCallParts.push(
-        new vscode.LanguageModelToolCallPart(part.id, part.name, asObjectSafe(part.input))
-      );
+      contentParts.push(new vscode.LanguageModelToolCallPart(part.id, part.name, asObjectSafe(part.input)));
     }
-    else if (part.type === "image") {
-      textParts.push(new vscode.LanguageModelTextPart("[Image generation not supported by VSCode LM API]"));
-    }
-    else {
-      textParts.push(new vscode.LanguageModelTextPart(part.text));
+    else if (part.type === "text") {
+      contentParts.push(new vscode.LanguageModelTextPart(part.text));
     }
   }
-  return [...toolCallParts, ...textParts];
+  return contentParts;
 }
 
-/**
- * Converts an array of Anthropic message parameters into VSCode Language Model chat messages.
- *
- * @param anthropicMessages - An array of Anthropic message parameters to be converted
- * @returns An array of converted {@link LanguageModelChatMessage} objects
- */
+// Converts Anthropic messages to VSCode Language Model chat messages
 export function convertToVsCodeLmMessages(anthropicMessages: Anthropic.Messages.MessageParam[]): vscode.LanguageModelChatMessage[] {
   const vsCodeLmMessages: vscode.LanguageModelChatMessage[] = [];
-
   for (const anthropicMessage of anthropicMessages) {
-    // Handle simple string messages
     if (typeof anthropicMessage.content === "string") {
       vsCodeLmMessages.push(
         anthropicMessage.role === "assistant"
@@ -103,89 +74,60 @@ export function convertToVsCodeLmMessages(anthropicMessages: Anthropic.Messages.
       );
       continue;
     }
-
-    // Handle complex message structures
     switch (anthropicMessage.role) {
-      case "user": {
-        const userParts = anthropicMessage.content.filter(
-          part => part.type !== "tool_use"
-        );
-        const contentParts = parseUserContentParts(userParts);
-        vsCodeLmMessages.push(vscode.LanguageModelChatMessage.User(contentParts));
+      case "user":
+        const userParts = parseUserContentParts(anthropicMessage.content.filter(part => part.type !== "tool_use"));
+        vsCodeLmMessages.push(vscode.LanguageModelChatMessage.User(userParts));
         break;
-      }
-      case "assistant": {
-        const assistantParts = anthropicMessage.content.filter(
-          part => part.type !== "tool_result"
-        );
-        const contentParts = parseAssistantContentParts(assistantParts);
-        vsCodeLmMessages.push(vscode.LanguageModelChatMessage.Assistant(contentParts));
+      case "assistant":
+        const assistantParts = parseAssistantContentParts(anthropicMessage.content.filter(part => part.type !== "tool_result"));
+        vsCodeLmMessages.push(vscode.LanguageModelChatMessage.Assistant(assistantParts));
         break;
-      }
     }
   }
-
   return vsCodeLmMessages;
 }
 
-/**
- * Converts a VSCode Language Model chat message role to its corresponding Anthropic role string.
- * @param vsCodeLmMessageRole - The VSCode Language Model chat message role to convert
- * @returns The Anthropic role string ("assistant" or "user") if the role can be mapped, null otherwise
- */
+// Converts VSCode message role to Anthropic role
 export function convertToAnthropicRole(vsCodeLmMessageRole: vscode.LanguageModelChatMessageRole): string | null {
-  switch (vsCodeLmMessageRole) {
-    case vscode.LanguageModelChatMessageRole.Assistant:
-      return "assistant";
-    case vscode.LanguageModelChatMessageRole.User:
-      return "user";
-    default:
-      return null;
-  }
+  return vsCodeLmMessageRole === vscode.LanguageModelChatMessageRole.Assistant
+    ? "assistant"
+    : vsCodeLmMessageRole === vscode.LanguageModelChatMessageRole.User
+      ? "user"
+      : null;
 }
 
-/**
- * Converts a VS Code Language Model chat message to an Anthropic message format.
- *
- * @param vsCodeLmMessage - The VS Code Language Model chat message to convert
- * @returns An Anthropic message object conforming to the Anthropic.Messages.Message interface
- * @throws {Error} When the message role is not "assistant"
- */
-export async function convertToAnthropicMessage(vsCodeLmMessage: vscode.LanguageModelChatMessage): Promise<Anthropic.Messages.Message> {
-  const anthropicRole: string | null = convertToAnthropicRole(vsCodeLmMessage.role);
-  if (anthropicRole !== "assistant") {
-    throw new Error("Recline <Language Model API>: Only assistant messages are supported.");
-  }
-
-  return {
-    id: crypto.randomUUID(),
-    type: "message",
-    model: "vscode-lm",
-    role: anthropicRole,
-    content: vsCodeLmMessage.content
-      .map((part): Anthropic.ContentBlock | null => {
-        if (part instanceof vscode.LanguageModelTextPart) {
-          return {
-            type: "text",
-            text: part.value
-          };
-        }
-        if (part instanceof vscode.LanguageModelToolCallPart) {
-          return {
-            type: "tool_use",
-            id: part.callId || crypto.randomUUID(),
-            name: part.name,
-            input: asObjectSafe(part.input)
-          };
-        }
-        return null;
-      })
-      .filter((part): part is Anthropic.ContentBlock => part !== null),
-    stop_reason: ((): null => null)(),
-    stop_sequence: null,
-    usage: {
-      input_tokens: (vsCodeLmMessage as any).__tokenCount?.inputTokens || 0,
-      output_tokens: (vsCodeLmMessage as any).__tokenCount?.outputTokens || 0
-    }
-  };
-}
+// Converts VSCode message to Anthropic message format. Currently not used.
+// export async function convertToAnthropicMessage(vsCodeLmMessage: vscode.LanguageModelChatMessage): Promise<Anthropic.Messages.Message> {
+//   const anthropicRole = convertToAnthropicRole(vsCodeLmMessage.role);
+//   if (anthropicRole !== "assistant") {
+//     throw new Error("Recline <Language Model API>: Only assistant messages are supported.");
+//   }
+//   const content = vsCodeLmMessage.content.map((part) => {
+//     if (part instanceof vscode.LanguageModelTextPart) {
+//       return { type: "text", text: part.value };
+//     }
+//     if (part instanceof vscode.LanguageModelToolCallPart) {
+//       return {
+//         type: "tool_use",
+//         id: part.callId || crypto.randomUUID(),
+//         name: part.name,
+//         input: asObjectSafe(part.input)
+//       };
+//     }
+//     return null;
+//   }).filter(part => part !== null) as Anthropic.ContentBlock[];
+//   return {
+//     id: crypto.randomUUID(),
+//     type: "message",
+//     model: "vscode-lm",
+//     role: anthropicRole,
+//     content,
+//     stop_reason: null,
+//     stop_sequence: null,
+//     usage: {
+//       input_tokens: (vsCodeLmMessage as any).__tokenCount?.inputTokens || 0,
+//       output_tokens: (vsCodeLmMessage as any).__tokenCount?.outputTokens || 0
+//     }
+//   };
+// }
