@@ -845,32 +845,33 @@ export class Recline {
     }
 
     // It could be useful for recline to know if the user went from one or no file to another between messages, so we always include this context
+    // TODO: Move this util function somewhere else...
+    const getFormattedPaths = (
+      source: string[],
+      cwd: string,
+      emptyMessage: string
+    ): string => {
+      const paths = source
+        .filter(Boolean)
+        .map(absolutePath => path.relative(cwd, absolutePath).toPosix())
+        .join("\n");
+
+      return paths || emptyMessage;
+    };
+
     details += "\n\n# VSCode Visible Files";
-    const visibleFiles = vscode.window.visibleTextEditors
-      ?.map(editor => editor.document?.uri?.fsPath)
-      .filter(Boolean)
-      .map(absolutePath => path.relative(cwd, absolutePath).toPosix())
-      .join("\n");
-    if (visibleFiles) {
-      details += `\n${visibleFiles}`;
-    }
-    else {
-      details += "\n(No visible files)";
-    }
+    const visibleFiles = vscode.window.visibleTextEditors.map(
+      editor => editor.document.uri.fsPath
+    );
+    details += `\n${getFormattedPaths(visibleFiles, cwd, "(No visible files)")}`;
 
     details += "\n\n# VSCode Open Tabs";
+    const visibleFilesSet = new Set(visibleFiles);
     const openTabs = vscode.window.tabGroups.all
       .flatMap(group => group.tabs)
       .map(tab => (tab.input as vscode.TabInputText)?.uri?.fsPath)
-      .filter(Boolean)
-      .map(absolutePath => path.relative(cwd, absolutePath).toPosix())
-      .join("\n");
-    if (openTabs) {
-      details += `\n${openTabs}`;
-    }
-    else {
-      details += "\n(No open tabs)";
-    }
+      .filter(path => path != null && path.length > 0 && !visibleFilesSet.has(path));
+    details += `\n${getFormattedPaths(openTabs, cwd, "(No open tabs)")}`;
 
     const busyTerminals = this.terminalManager.getTerminals(true);
     const inactiveTerminals = this.terminalManager.getTerminals(false);
@@ -2737,7 +2738,8 @@ export class Recline {
       if (assistantMessage.length > 0) {
         await this.addToApiConversationHistory({
           role: "assistant",
-          content: [{ type: "text", text: assistantMessage }]
+          content: [{ type: "text", text: assistantMessage }],
+          tokenCount: outputTokens
         });
 
         // NOTE: this comment is here for future reference - this was a workaround for userMessageContent not getting set to true. It was due to it not recursively calling for partial blocks when didRejectTool, so it would get stuck waiting for a partial block to complete before it could continue.

@@ -56,7 +56,7 @@ export class VSCodeLmModelProvider implements ModelProvider {
     catch (error) {
 
       // Clean up resources if initialization fails
-      this.dispose();
+      void this.dispose();
 
       throw new Error(
         `Recline <Language Model API>: Failed to initialize handler: ${error instanceof Error ? error.message : "Unknown error"}`
@@ -95,6 +95,7 @@ export class VSCodeLmModelProvider implements ModelProvider {
         continue;
       }
 
+      // Fallback to keep compatibility with older message histories
       const messageContent: string = Array.isArray(msg.content)
         ? msg.content
           .filter(block => block.type === "text")
@@ -308,7 +309,7 @@ export class VSCodeLmModelProvider implements ModelProvider {
     return {
       id: stringifyVsCodeLmModelSelector(client),
       info: {
-        maxTokens: client.maxInputTokens, // VSCode Language Model API does not provide output token limit. Going with the context window size.
+        maxTokens: Math.min(client.maxInputTokens, 4096), // VSCode Language Model API does not provide output token limit... Using an arbitrary value based on various github issues.
         contextWindow: client.maxInputTokens,
         supportsImages: false,
         supportsPromptCache: false,
