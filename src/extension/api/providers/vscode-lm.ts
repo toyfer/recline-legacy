@@ -309,7 +309,7 @@ export class VSCodeLmModelProvider implements ModelProvider {
     return {
       id: stringifyVsCodeLmModelSelector(client),
       info: {
-        maxTokens: client.maxInputTokens / 2, // VSCode Language Model API does not provide output token limit... Using an arbitrary value based on various github issues.
+        maxTokens: client.maxInputTokens, // VSCode Language Model API does not provide output token limit... Using input token limit as a fallback.
         contextWindow: client.maxInputTokens,
         supportsImages: false,
         supportsPromptCache: false,
