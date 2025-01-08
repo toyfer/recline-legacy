@@ -6,7 +6,6 @@ import type { ModelProvider } from "../";
 import type { ApiStream } from "../transform/stream";
 
 import OpenAI from "openai";
-import pWaitFor from "p-wait-for";
 
 import { deepSeekDefaultModelId, deepSeekModels } from "@shared/api";
 
