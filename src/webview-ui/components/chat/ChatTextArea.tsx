@@ -1,4 +1,3 @@
-import DynamicTextArea from "react-textarea-autosize";
 import React, { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { mentionRegex, mentionRegexGlobal } from "@shared/context-mentions";
@@ -273,6 +272,20 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
       }
     }, [inputValue, intendedCursorPosition]);
 
+    // Update height when input value changes (e.g. when cleared after sending)
+    useLayoutEffect(() => {
+      if (textAreaRef.current) {
+        textAreaRef.current.style.height = "0";
+        const newHeight = Math.min(textAreaRef.current.scrollHeight, 31.250 * 10);
+        textAreaRef.current.style.height = `${newHeight}px`;
+
+        if (textAreaBaseHeight == null || newHeight < textAreaBaseHeight) {
+          setTextAreaBaseHeight(newHeight);
+        }
+        onHeightChange?.(newHeight);
+      }
+    }, [inputValue, onHeightChange]);
+
     const handleInputChange = useCallback(
       (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newValue = e.target.value;
@@ -496,7 +509,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
             padding: "9px 49px 3px 9px"
           }}
         />
-        <DynamicTextArea
+        <textarea
           ref={(el) => {
             if (typeof ref === "function") {
               ref(el);
@@ -512,6 +525,21 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
             handleInputChange(e);
             updateHighlights();
           }}
+          onInput={(e) => {
+            const target = e.target as HTMLTextAreaElement;
+            // Auto-resize logic
+            target.style.height = "0";
+            const baseHeight = 31.250; // Initial textarea height
+            const maxHeight = baseHeight * 10; // 10 lines
+
+            const newHeight = Math.min(target.scrollHeight, maxHeight);
+            target.style.height = `${newHeight}px`;
+
+            if (textAreaBaseHeight == null || newHeight < textAreaBaseHeight) {
+              setTextAreaBaseHeight(newHeight);
+            }
+            onHeightChange?.(newHeight);
+          }}
           onKeyDown={handleKeyDown}
           onKeyUp={handleKeyUp}
           onFocus={() => setIsTextAreaFocused(true)}
@@ -519,16 +547,10 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
           onPaste={handlePaste}
           onSelect={updateCursorPosition}
           onMouseUp={updateCursorPosition}
-          onHeightChange={(height) => {
-            if (textAreaBaseHeight == null || height < textAreaBaseHeight) {
-              setTextAreaBaseHeight(height);
-            }
-            onHeightChange?.(height);
-          }}
           placeholder={placeholderText}
-          maxRows={10}
           autoFocus={true}
           style={{
+            minHeight: `31.250px`,
             width: "100%",
             boxSizing: "border-box",
             backgroundColor: "transparent",
