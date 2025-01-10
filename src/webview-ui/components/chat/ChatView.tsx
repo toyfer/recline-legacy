@@ -758,12 +758,12 @@ function ChatView({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
         >
           {showAnnouncement && <Announcement version={version} hideAnnouncement={hideAnnouncement} />}
           <div style={{ padding: "0 20px", flexShrink: 0 }}>
-            <h2>What can I do for you?</h2>
+            <h2>Put Your Feet Up, I'll Handle It!</h2>
             <p>
-              Recline handles complex software development tasks for you by using a set of tools and step-by-step methodology.
-              The tools can create & edit files, explore complex projects, use the browser, and execute terminal commands.
-              The extension can assist you in ways that go beyond code completion or tech support.
-              In addition to the regular tools, MCPs can be used and even created to extend Recline's capabilities.
+              Recline takes the heavy lifting out of software development, automating certain tasks so you can focus on what matters.
+              With a powerful set of tools and a smart, step-by-step approach, Recline can create and edit files, navigate complex projects, run terminal commands, and even browse the web—doing it all so you can focus on what matters most.
+              But that's just the start! Recline goes beyond code completion and basic tech support to truly automate your workflow.
+              Plus, with MCPs, you can extend Recline’s abilities, making it even more tailored to your needs.
             </p>
           </div>
           {taskHistory.length > 0 && <HistoryPreview showHistoryView={showHistoryView} />}

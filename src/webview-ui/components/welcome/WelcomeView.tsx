@@ -24,10 +24,10 @@ function WelcomeView() {
 
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, padding: "0 20px" }}>
-      <h2>You can almost Recline.</h2>
-      <p>Recline is an autonomous AI assistant that seamlessly integrates with your CLI and editor to create, edit, and run; redefining how you code.</p>
+      <h2>Ready When You Are.</h2>
+      <p>Recline is your new AI assistant, ready to help you create, edit, and run code—all while you sit back and relax. It integrates seamlessly with your CLI and editor to make coding feel effortless.</p>
 
-      <b>To get started; an AI provider needs to be configured.</b>
+      <b>Before we dive in, let's set up your AI provider.</b>
 
       <div style={{ marginTop: "10px" }}>
         <ApiOptions showModelOptions={false} />
