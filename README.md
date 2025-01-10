@@ -25,8 +25,8 @@ Whether you need to create or modify files, navigate projects, execute terminal 
 > [!IMPORTANT]  
 > Due to no suitable NPM packages providing fd and ripgrep prebuilts, you'll need to install ripgrep (as rg) and fd (as fd) on your system.
 > 
-> https://github.com/sharkdp/fd?tab=readme-ov-file#installation 
-> https://github.com/BurntSushi/ripgrep?tab=readme-ov-file#installation 
+> - https://github.com/sharkdp/fd?tab=readme-ov-file#installation 
+> - https://github.com/BurntSushi/ripgrep?tab=readme-ov-file#installation 
 
 ### Why Choose Recline?
 
