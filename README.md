@@ -114,6 +114,8 @@ To install Recline you'll need to manually build the extension and install direc
   ```
 ### 5. Recline! 🎉
 
+---
+
 ## Contributing
 
 <details>
@@ -136,10 +138,14 @@ To install Recline you'll need to manually build the extension and install direc
 
 </details>
 
+---
+
 ## License
 
 [Mozilla Public License Version 2.0 © 2025 Jules Mons](./LICENSE.md)  
 [Apache 2.0 © 2024 Cline Bot Inc.](./CLINE.LICENSE.md)
+
+---
 
 ## Attribution
 
