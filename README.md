@@ -89,7 +89,7 @@ To install Recline you'll need to manually build the extension and install direc
 
 1. Clone the repository:
   ```bash
-  git clone https://github.com/julesmons/recline.git
+  git clone https://github.com/julesmons/recline.git && cd ./recline
   ```
 2. Install dependencies (one command, **NOT* Cline's `npm run install:all` and requires [PNPM](https://pnpm.io/installation))
   ```bash
