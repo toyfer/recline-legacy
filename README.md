@@ -22,6 +22,11 @@ These enhancements attempt to make Cline/Recline more stable, more performant, a
 Powered by the cutting-edge [Claude 3.5 Sonnet](https://www-cdn.anthropic.com/fed9cc193a14b84131812372d8d5857f8f304c52/Model_Card_Claude_3_Addendum.pdf), Recline is equipped to handle complex software tasks with precision and ease.
 Whether you need to create or modify files, navigate projects, execute terminal commands, or even browse the web — Recline has got your back. And don’t worry, you’re always in control — as every action requires your approval.
 
+> [!IMPORTANT]  
+> Due to no suitable NPM packages providing fd and ripgrep prebuilts, you'll need to install ripgrep (as rg) and fd (as fd) on your system.
+> https://github.com/sharkdp/fd?tab=readme-ov-file#installation
+> https://github.com/BurntSushi/ripgrep?tab=readme-ov-file#installation
+
 ### Why Choose Recline?
 
 1. **Tell Recline What You Need:** Just describe your task. Whether you’re turning mockups into working code or debugging with screenshots, Recline gets to work.
