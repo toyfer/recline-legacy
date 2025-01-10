@@ -89,13 +89,20 @@ To install Recline you'll need to manually build the extension and install direc
 
 1. Clone the repository:
   ```bash
-  git clone https://github.com/julesmons/recline.git && cd ./recline
+  git clone https://github.com/julesmons/recline.git
   ```
-2. Install dependencies (one command, **NOT* Cline's `npm run install:all` and requires [PNPM](https://pnpm.io/installation))
+  ```bash
+  cd ./recline
+  ```
+2. Install dependencies
+  > [!IMPORTANT]  
+  > Recline does **NOT** use Cline's `npm run install:all` and requires [PNPM](https://pnpm.io/installation) to be installed.
   ```bash
   pnpm install
   ```
-3. Package as VSIX (Make sure you've installed [@vscode/vsce](https://www.npmjs.com/package/@vscode/vsce) globally)
+3. Package as VSIX 
+  > [!IMPORTANT]  
+  > Make sure you've installed [@vscode/vsce](https://www.npmjs.com/package/@vscode/vsce) globally
   ```bash
   pnpm run package
   ```
