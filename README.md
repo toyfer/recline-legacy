@@ -13,7 +13,7 @@
 </table>
 </div>
 
-**Recline** is your AI-powered coding sidekick that works directly within your CLI and editor to create, edit, and run code like never before.
+**Recline** is your AI-powered coding sidekick that works directly within your CLI and editor to create, edit and run code like never before.
 Recline aims to redefine the way you code — smarter, faster, and more efficiently.
 
 This project is a fork of [Cline](https://github.com/cline/cline). While Recline builds upon the foundation laid by Cline, it sets itself apart through extensive rewrites and a comprehensive restructuring of the original codebase.
