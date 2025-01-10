@@ -77,6 +77,37 @@ Some cool ideas to try:
 - **`@file`**: Add file contents to your workspace without extra prompts.
 - **`@folder`**: Import entire directories at once for large-scale operations.
 
+---
+
+## Installing
+
+Eventually Recline will be released on the VSCode Marketplace.
+However; This project is currently in a very experimental state.
+For instance, the changes to Cline's core have not been battle-tested yet.
+
+To install Recline you'll need to manually build the extension and install directly from VSIX.
+
+1. Clone the repository:
+  ```bash
+  git clone https://github.com/julesmons/recline.git
+  ```
+2. Install dependencies (one command, **NOT* Cline's `npm run install:all` and requires [PNPM](https://pnpm.io/installation))
+  ```bash
+  pnpm install
+  ```
+3. Package as VSIX (Make sure you've installed [@vscode/vsce](https://www.npmjs.com/package/@vscode/vsce) globally)
+  ```bash
+  pnpm run package
+  ```
+4. Install the extension into VSCode
+  > [!NOTE]  
+  > Version number will differ based on the actual version in `./package.json`
+  ```bash
+  code --install-extension ./recline-0.2.11.vsix
+  ```
+5. Recline! 🎉
+---
+
 ## Contributing
 
 <details>
