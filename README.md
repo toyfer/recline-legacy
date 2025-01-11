@@ -28,7 +28,7 @@ Whether you need to create or modify files, navigate projects, execute terminal 
 > - https://github.com/sharkdp/fd?tab=readme-ov-file#installation  
 > - https://github.com/BurntSushi/ripgrep?tab=readme-ov-file#installation
 > 
-> This is a temporary requirement, a future update will bundle these binaries with the extension.
+> This is a temporary requirement, a future update will bundle these binaries with the extension. (or automatically download them when required)
 
 ### Why Choose Recline?
 
