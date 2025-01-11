@@ -23,7 +23,7 @@ Powered by the cutting-edge [Claude 3.5 Sonnet](https://www-cdn.anthropic.com/fe
 Whether you need to create or modify files, navigate projects, execute terminal commands, or even browse the web — Recline has got your back. And don’t worry, you’re always in control — as every action requires your approval.
 
 > [!IMPORTANT]  
-> Due to no suitable NPM packages providing fd and ripgrep prebuilts, you'll need to install ripgrep (as rg) and fd (as fd) on your system.
+> Due to no suitable NPM packages providing fd and ripgrep prebuilts, you'll need to install ripgrep (as rg in path) and fd (as fd in path) on your system.
 > 
 > - https://github.com/sharkdp/fd?tab=readme-ov-file#installation  
 > - https://github.com/BurntSushi/ripgrep?tab=readme-ov-file#installation
